@@ -2,21 +2,12 @@
 import React, { useState } from "react";
 
 export default function NotificationDropdown() {
-  const [isOpen, setIsOpen] = useState(false);
   const [notifying, setNotifying] = useState(true);
 
-  function toggleDropdown() {
-    setIsOpen(!isOpen);
-  }
-
-  function closeDropdown() {
-    setIsOpen(false);
-  }
-
   const handleClick = () => {
-    toggleDropdown();
     setNotifying(false);
   };
+  
   return (
     <div className="relative">
       <button

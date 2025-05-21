@@ -25,7 +25,7 @@ export default function ResetPasswordForm() {
               Forgot Your Password?
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter the email address linked to your account, and we'll send you a link
+              Enter the email address linked to your account, and we&apos;ll send you a link
               to reset your password.
             </p>
           </div>

@@ -12,7 +12,6 @@ import {
   PageIcon,
   PieChartIcon,
   PlugInIcon,
-  TableIcon,
   GroupIcon,
   LockIcon,
   EyeIcon,
