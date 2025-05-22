@@ -53,8 +53,20 @@ import ChatIcon from "./chat.svg";
 import MoreDotIcon from "./more-dot.svg";
 import BellIcon from "./bell.svg";
 import HourglassIcon from "./hourglass.svg";
+import FileImageDarkIcon from "./file-image-dark.svg";
+import FileImageLightIcon from "./file-image.svg";
+import FilePdfDarkIcon from "./file-pdf-dark.svg";
+import FilePdfIcon from "./file-pdf.svg";
+import FileVideoDarkIcon from "./file-video-dark.svg"
+import FileVideo from "./file-video.svg";
 
 export {
+  FileImageDarkIcon,
+  FileImageLightIcon,
+  FilePdfDarkIcon,
+  FilePdfIcon,
+  FileVideoDarkIcon,
+  FileVideo,
   DownloadIcon,
   BellIcon,
   MoreDotIcon,
