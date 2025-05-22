@@ -11,7 +11,6 @@ import {
   ListIcon,
   PageIcon,
   PieChartIcon,
-  PlugInIcon,
   GroupIcon,
   LockIcon,
   EyeIcon,
