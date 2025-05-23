@@ -12,11 +12,9 @@ import Badge from "../ui/badge/Badge";
 import Image from "next/image";
 import Pagination from "./Pagination";
 import { 
-  BellIcon,
   SearchIcon,
   UserPlusIcon,
   ChevronDownIcon,
-  ChevronUpIcon,
   CheckLineIcon,
   PencilIcon,
   ShootingStarIcon,
@@ -33,15 +31,6 @@ const roleConfig: Record<RoleType, {color: string, abbr: string}> = {
   "Investigator": { color: "bg-amber-500", abbr: "V" },
   "System Support": { color: "bg-rose-500", abbr: "S" },
 };
-
-// Available role options for dropdown
-const roleOptions: RoleType[] = [
-  "Administrator",
-  "Division Manager",
-  "Analyst",
-  "Investigator",
-  "System Support",
-];
 
 // Define status types
 type StatusType = "Active" | "Inactive" | "Transferred" | "Canceled";
@@ -327,9 +316,6 @@ const securityData: SecurityEntry[] = [
   },
 ];
 
-// List of all possible status types
-const allStatusTypes: StatusType[] = ["Active", "Inactive", "Transferred", "Canceled"];
-
 // Function to sort roles in the correct order
 const sortRoles = (roles: RoleType[]): RoleType[] => {
   // If Administrator is present, return just Administrator
@@ -460,7 +446,7 @@ export default function SecurityTable() {
 
   // Sort data based on sort configuration
   const sortedData = useMemo(() => {
-    let sortableData = [...filteredData];
+    const sortableData = [...filteredData];
     if (sortConfig.key && sortConfig.direction) {
       sortableData.sort((a, b) => {
         let aValue, bValue;

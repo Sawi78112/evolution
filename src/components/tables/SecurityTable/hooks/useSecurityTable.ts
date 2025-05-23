@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { SecurityEntry, RoleType, StatusType, SortConfig, DropdownPosition } from '../types';
+import { SecurityEntry, RoleType, StatusType, SortConfig } from '../types';
 import { filterSecurityData, sortSecurityData, sortRoles } from '../utils';
 import { securityData } from '../data/mockData';
 
