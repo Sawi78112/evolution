@@ -1,0 +1,54 @@
+import { RoleType, StatusType, RoleConfig, StatusConfig } from '../types';
+
+// Role configuration including colors and abbreviations
+export const roleConfig: Record<RoleType, RoleConfig> = {
+  "Administrator": { color: "bg-blue-500", abbr: "A" },
+  "Division Manager": { color: "bg-green-500", abbr: "M" },
+  "Analyst": { color: "bg-purple-500", abbr: "N" },
+  "Investigator": { color: "bg-amber-500", abbr: "V" },
+  "System Support": { color: "bg-rose-500", abbr: "S" },
+};
+
+// Available role options for dropdown
+export const roleOptions: RoleType[] = [
+  "Administrator",
+  "Division Manager",
+  "Analyst",
+  "Investigator",
+  "System Support",
+];
+
+// Status configuration with proper badge colors
+export const statusConfig: Record<StatusType, StatusConfig> = {
+  "Active": { 
+    color: "success", 
+    description: "User can log in, perform transactions, manage cases, and use the system."
+  },
+  "Inactive": { 
+    color: "warning", 
+    description: "Temporarily disabled — used for vacation, leave, or extended absence."
+  },
+  "Transferred": { 
+    color: "info", 
+    description: "User's active work has been moved to another user. The user remains visible in audit logs."
+  },
+  "Canceled": { 
+    color: "error", 
+    description: "Permanently deactivated — cannot log in or perform actions, but remains in the system for historical traceability."
+  },
+};
+
+// List of all possible status types
+export const allStatusTypes: StatusType[] = ["Active", "Inactive", "Transferred", "Canceled"];
+
+// Pagination options
+export const itemsPerPageOptions = [5, 10, 15, 20];
+
+// Role order mapping for sorting
+export const roleOrderMap: Record<RoleType, number> = {
+  "Administrator": 0,
+  "Division Manager": 1,
+  "Analyst": 2,
+  "Investigator": 3,
+  "System Support": 4
+}; 

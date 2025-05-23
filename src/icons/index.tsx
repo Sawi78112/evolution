@@ -30,7 +30,6 @@ import ChevronUpIcon from "./chevron-up.svg";
 import PaperPlaneIcon from "./paper-plane.svg";
 import LockIcon from "./lock.svg";
 import EnvelopeIcon from "./envelope.svg";
-import ElectronicCommIcon from "./electronic-comm.svg";
 import UserIcon from "./user-line.svg";
 import CalenderIcon from "./calender-line.svg";
 import EyeIcon from "./eye.svg";
@@ -52,21 +51,14 @@ import HorizontaLDots from "./horizontal-dots.svg";
 import ChatIcon from "./chat.svg";
 import MoreDotIcon from "./more-dot.svg";
 import BellIcon from "./bell.svg";
+import SearchIcon from "./search.svg";
+import UserPlusIcon from "./user-plus.svg";
 import HourglassIcon from "./hourglass.svg";
-import FileImageDarkIcon from "./file-image-dark.svg";
-import FileImageLightIcon from "./file-image.svg";
-import FilePdfDarkIcon from "./file-pdf-dark.svg";
-import FilePdfIcon from "./file-pdf.svg";
-import FileVideoDarkIcon from "./file-video-dark.svg"
-import FileVideo from "./file-video.svg";
+import ElectronicCommIcon from "./electronic-comm.svg";
 
 export {
-  FileImageDarkIcon,
-  FileImageLightIcon,
-  FilePdfDarkIcon,
-  FilePdfIcon,
-  FileVideoDarkIcon,
-  FileVideo,
+  HourglassIcon,
+  ElectronicCommIcon,
   DownloadIcon,
   BellIcon,
   MoreDotIcon,
@@ -99,7 +91,6 @@ export {
   ChevronDownIcon,
   PaperPlaneIcon,
   EnvelopeIcon,
-  ElectronicCommIcon,
   LockIcon,
   UserIcon,
   CalenderIcon,
@@ -121,5 +112,6 @@ export {
   HorizontaLDots,
   ChevronUpIcon,
   ChatIcon,
-  HourglassIcon,
+  SearchIcon,
+  UserPlusIcon,
 };

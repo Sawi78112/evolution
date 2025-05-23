@@ -1,17 +1,25 @@
+import ComponentCard from "@/components/common/ComponentCard";
 import PageBreadcrumb from "@/components/common/PageBreadCrumb";
+import SecurityTable from "@/components/tables/SecurityTable";
 import { Metadata } from "next";
 import React from "react";
 
 export const metadata: Metadata = {
-  title: "Evolution 1.0 | AI-Powered DeepFake Detection & Intelligence Platform",
+  title: "Security | Evolution 1.0",
   description:
-    "Evolution 1.0 by Evo Tech is an advanced AI platform for DeepFake detection and intelligence analysis, integrating autonomous Agents, forensic media evaluation, and role-based workflows for secure, real-time threat management.",
+    "Manage security, monitor access attempts, and track user activity across the Evolution 1.0 platform.",
 };
 
-export default function page() {
+
+export default function SecurityPage() {
   return (
     <div>
       <PageBreadcrumb pageTitle="Security" />
+      <div className="space-y-6">
+        <ComponentCard title="User List">
+          <SecurityTable />
+        </ComponentCard>
+      </div>
     </div>
   );
 }

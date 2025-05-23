@@ -36,10 +36,7 @@ const navItems: NavItem[] = [
   {
     icon: <ListIcon />,
     name: "Cases",
-    subItems: [
-      { name: "Create Case", path: "/add-case", pro: false },
-      { name: "Cases List", path: "/cases", pro: false },
-    ],
+    path: "/cases",
   },
   {
     icon: <GroupIcon />,
@@ -89,14 +86,21 @@ const navItems: NavItem[] = [
 ];
 
 const AppSidebar: React.FC = () => {
-  const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
+  const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
   const pathname = usePathname();
+
+  // Handle mobile menu item click - close sidebar on mobile
+  const handleMobileMenuClick = useCallback(() => {
+    if (window.innerWidth < 1024) {
+      toggleMobileSidebar();
+    }
+  }, [toggleMobileSidebar]);
 
   const renderMenuItems = (
     navItems: NavItem[],
     menuType: "main" | "others"
   ) => (
-    <ul className="flex flex-col gap-4">
+    <ul className="flex flex-col gap-2.5">
       {navItems.map((nav, index) => (
         <li key={nav.name}>
           {nav.subItems ? (
@@ -139,6 +143,7 @@ const AppSidebar: React.FC = () => {
             nav.path && (
               <Link
                 href={nav.path}
+                onClick={handleMobileMenuClick}
                 className={`menu-item group ${
                   isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
                 }`}
@@ -171,11 +176,12 @@ const AppSidebar: React.FC = () => {
                     : "0px",
               }}
             >
-              <ul className="mt-2 space-y-1 ml-9">
+              <ul className="mt-1.5 space-y-0.5 ml-9">
                 {nav.subItems.map((subItem) => (
                   <li key={subItem.name}>
                     <Link
                       href={subItem.path}
+                      onClick={handleMobileMenuClick}
                       className={`menu-dropdown-item ${
                         isActive(subItem.path)
                           ? "menu-dropdown-item-active"
@@ -295,11 +301,11 @@ const AppSidebar: React.FC = () => {
       onMouseLeave={() => setIsHovered(false)}
     >
       <div
-        className={`py-6 flex  ${
+        className={`py-4 flex  ${
           !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
         }`}
       >
-        <Link href="/">
+        <Link href="/" onClick={handleMobileMenuClick}>
           {isExpanded || isHovered || isMobileOpen ? (
             <>
               <Image
@@ -328,8 +334,8 @@ const AppSidebar: React.FC = () => {
         </Link>
       </div>
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
-        <nav className="mb-6">
-          <div className="flex flex-col gap-4">
+        <nav className="mb-4">
+          <div className="flex flex-col gap-3">
             <div>
               <h2
                 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${

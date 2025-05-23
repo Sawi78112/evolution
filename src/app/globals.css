@@ -192,9 +192,7 @@
   }
 }
 
-@utility menu-item {
-  @apply relative flex items-center w-full gap-3 px-3 py-2 font-medium rounded-lg text-theme-sm;
-}
+@utility menu-item {  @apply relative flex items-center w-full gap-2.5 px-3 py-1.5 font-medium rounded-lg text-theme-sm;}
 
 @utility menu-item-active {
   @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
@@ -228,9 +226,7 @@
   @apply text-gray-500 group-hover:text-gray-700 dark:text-gray-400 dark:group-hover:text-gray-300;
 }
 
-@utility menu-dropdown-item {
-  @apply relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-theme-sm font-medium;
-}
+@utility menu-dropdown-item {  @apply relative flex items-center gap-2.5 rounded-lg px-3 py-2 text-theme-sm font-medium;}
 
 @utility menu-dropdown-item-active {
   @apply bg-brand-50 text-brand-500 dark:bg-brand-500/[0.12] dark:text-brand-400;
