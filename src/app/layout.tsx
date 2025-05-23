@@ -28,7 +28,7 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="manifest" href="/site.webmanifest" />
       </head>
-      <body className={`${outfit.className}`}>
+      <body className={`${outfit.className} dark:bg-gray-900`}>
         <ThemeProvider>
           <SidebarProvider>{children}</SidebarProvider>
         </ThemeProvider>
