@@ -211,10 +211,12 @@ export function EditUserModal({ isOpen, onClose, onSubmit, userData }: EditUserM
     
     // If password wasn't changed, don't include it in the update
     if (formData.passwordType === 'admin' && formData.password === '') {
-      const { password: _password, passwordType: _passwordType, ...dataWithoutPassword } = submitData;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, passwordType, ...dataWithoutPassword } = submitData;
       submitData = dataWithoutPassword as UserFormData;
     } else if (formData.passwordType === 'system' && generatedPassword === '') {
-      const { password: _password, passwordType: _passwordType, ...dataWithoutPassword } = submitData;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, passwordType, ...dataWithoutPassword } = submitData;
       submitData = dataWithoutPassword as UserFormData;
     }
     
