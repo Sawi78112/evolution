@@ -156,7 +156,7 @@ export function EditUserModal({ isOpen, onClose, onSubmit, userData }: EditUserM
        (formData.passwordType === 'system' && generatedPassword !== '');
   };
 
-  const handleInputChange = (field: keyof UserFormData, value: any) => {
+  const handleInputChange = (field: keyof UserFormData, value: string | string[] | RoleType[] | StatusType) => {
     if (field === 'passwordType' && value === 'system') {
       const password = generatePassword();
       setGeneratedPassword(password);
@@ -207,15 +207,15 @@ export function EditUserModal({ isOpen, onClose, onSubmit, userData }: EditUserM
     e.preventDefault();
     
     // Only include password in submission if it was actually changed
-    let submitData: any = { ...formData };
+    let submitData = { ...formData };
     
     // If password wasn't changed, don't include it in the update
     if (formData.passwordType === 'admin' && formData.password === '') {
-      const { password, passwordType, ...dataWithoutPassword } = submitData;
-      submitData = dataWithoutPassword;
+      const { password: _password, passwordType: _passwordType, ...dataWithoutPassword } = submitData;
+      submitData = dataWithoutPassword as UserFormData;
     } else if (formData.passwordType === 'system' && generatedPassword === '') {
-      const { password, passwordType, ...dataWithoutPassword } = submitData;
-      submitData = dataWithoutPassword;
+      const { password: _password, passwordType: _passwordType, ...dataWithoutPassword } = submitData;
+      submitData = dataWithoutPassword as UserFormData;
     }
     
     onSubmit(submitData);
@@ -628,7 +628,7 @@ export function EditUserModal({ isOpen, onClose, onSubmit, userData }: EditUserM
               <div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Password Setup</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                  <span className="text-gray-500">(Optional)</span> Only change if you want to update the user's password
+                  <span className="text-gray-500">(Optional)</span> Only change if you want to update the user&apos;s password
                 </p>
                 <div className="space-y-4">
                   {/* Password Type */}

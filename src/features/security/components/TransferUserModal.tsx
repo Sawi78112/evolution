@@ -34,7 +34,7 @@ const transferScopeOptions: TransferScopeType[] = [
   'Cases', 'Alerts', 'Notifications', 'Activity Logs', 'Manager', 'Division'
 ];
 
-export function TransferUserModal({ isOpen, onClose, onSubmit, userId, userName }: TransferUserModalProps) {
+export function TransferUserModal({ isOpen, onClose, onSubmit, userName }: TransferUserModalProps) {
   const [formData, setFormData] = useState<TransferFormData>({
     transferToUserId: '',
     transferScope: [],
@@ -65,7 +65,7 @@ export function TransferUserModal({ isOpen, onClose, onSubmit, userId, userName 
 
   if (!isOpen || !mounted) return null;
 
-  const handleInputChange = (field: keyof TransferFormData, value: any) => {
+  const handleInputChange = (field: keyof TransferFormData, value: string | TransferScopeType[]) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 

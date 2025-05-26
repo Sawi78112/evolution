@@ -99,7 +99,7 @@ export default function SecurityTable() {
   const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [selectedUserForEdit, setSelectedUserForEdit] = useState<any>(null);
+  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserFormData | null>(null);
   const [selectedUserForDelete, setSelectedUserForDelete] = useState<{id: number, name: string} | null>(null);
   const [selectedUserForTransfer, setSelectedUserForTransfer] = useState<{id: number, name: string} | null>(null);
 

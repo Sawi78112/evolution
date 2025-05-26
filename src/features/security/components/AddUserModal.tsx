@@ -129,7 +129,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     return Object.values(requiredFields).every(field => !!field) && passwordValid;
   };
 
-  const handleInputChange = (field: keyof UserFormData, value: any) => {
+  const handleInputChange = (field: keyof UserFormData, value: string | string[] | RoleType[] | StatusType) => {
     if (field === 'passwordType' && value === 'system') {
       const password = generatePassword();
       setGeneratedPassword(password);

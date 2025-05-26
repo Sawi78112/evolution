@@ -12,7 +12,7 @@ interface DeleteModalProps {
   userName: string;
 }
 
-export function DeleteModal({ isOpen, onClose, onConfirm, userId, userName }: DeleteModalProps) {
+export function DeleteModal({ isOpen, onClose, onConfirm, userName }: DeleteModalProps) {
   const [mounted, setMounted] = useState(false);
 
   // Ensure component is mounted before rendering portal
