@@ -1,6 +1,6 @@
 "use client";
 import Label from "@/components/form/Label";
-import { ChevronLeftIcon } from "@/icons";
+import { ChevronLeftIcon } from "@/assets/icons";
 import Link from "next/link";
 import React, { useState, useRef } from "react";
 

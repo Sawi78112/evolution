@@ -4,7 +4,7 @@ import ComponentCard from "../../common/ComponentCard";
 import Label from "../Label";
 import Select from "../Select";
 import MultiSelect from "../MultiSelect";
-import { ChevronDownIcon } from "@/icons";
+import { ChevronDownIcon } from "@/assets/icons";
 
 export default function SelectInputs() {
   const options = [
