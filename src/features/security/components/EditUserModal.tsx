@@ -5,6 +5,9 @@ import { createPortal } from 'react-dom';
 import { CloseIcon, ChevronDownIcon, CheckLineIcon, EyeIcon, EyeCloseIcon, SearchIcon } from '@/assets/icons';
 import { RoleType, StatusType } from '../types';
 import { roleConfig, statusConfig } from '../constants';
+import Button from '@/components/ui/button/Button';
+import Input from '@/components/form/input/InputField';
+import Label from '@/components/form/Label';
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -255,29 +258,19 @@ export function EditUserModal({ isOpen, onClose, onSubmit, userData }: EditUserM
         }
       }}
     >
-      <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl border-0 mx-auto relative z-10">
-        {/* Header - Fixed */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Edit User</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <CloseIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          </button>
+      <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <div className="px-2 pr-14">
+          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+            Edit User
+          </h4>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+            Update user information and settings.
+          </p>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-          {/* Scrollable Body */}
-          <div 
-            className="flex-1 overflow-y-auto custom-scrollbar"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#CBD5E1 transparent'
-            }}
-          >
-            <div className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+            <div className="space-y-6">
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Username */}
@@ -698,26 +691,20 @@ export function EditUserModal({ isOpen, onClose, onSubmit, userData }: EditUserM
             </div>
           </div>
 
-          {/* Footer - Fixed */}
-          <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-800">
-            <button
-              type="button"
-              onClick={handleCancel}
-              className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-            >
+          <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+            <Button size="sm" variant="outline" onClick={handleCancel}>
               Cancel
-            </button>
-            <button
-              type="submit"
+            </Button>
+            <Button 
+              size="sm" 
               disabled={!hasFormChanged()}
-              className={`px-6 py-2 rounded-lg transition-colors ${
-                hasFormChanged()
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
-              }`}
+              onClick={() => {
+                const e = { preventDefault: () => {} } as React.FormEvent;
+                handleSubmit(e);
+              }}
             >
               Update User
-            </button>
+            </Button>
           </div>
         </form>
       </div>

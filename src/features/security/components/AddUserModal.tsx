@@ -5,6 +5,9 @@ import { createPortal } from 'react-dom';
 import { CloseIcon, ChevronDownIcon, CheckLineIcon, EyeIcon, EyeCloseIcon, SearchIcon } from '@/assets/icons';
 import { RoleType, StatusType } from '../types';
 import { roleConfig, statusConfig } from '../constants';
+import Button from '@/components/ui/button/Button';
+import Input from '@/components/form/input/InputField';
+import Label from '@/components/form/Label';
 
 interface AddUserModalProps {
   isOpen: boolean;
@@ -204,6 +207,31 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     setGeneratedPassword('');
   };
 
+  const handleAddUser = () => {
+    if (!areRequiredFieldsFilled()) {
+      return;
+    }
+    
+    onSubmit(formData);
+    onClose();
+    // Reset form
+    setFormData({
+      username: '',
+      abbreviation: '',
+      roles: [],
+      division: '',
+      managerId: '',
+      email: '',
+      officePhone: '',
+      homePhone: '',
+      homeAddress: '',
+      status: 'Active',
+      passwordType: 'system',
+      password: '',
+    });
+    setGeneratedPassword('');
+  };
+
   const selectedManager = managers.find(m => m.id === formData.managerId);
 
   const modalContent = (
@@ -226,59 +254,40 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
           }
         }}
       >
-        <div className="bg-white dark:bg-gray-800 rounded-xl w-full max-w-4xl h-[90vh] flex flex-col shadow-2xl border-0 mx-auto relative z-10">
-        {/* Header - Fixed */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Add New User</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-          >
-            <CloseIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" />
-          </button>
-        </div>
+        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+          <div className="px-2 pr-14">
+            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+              Add New User
+            </h4>
+            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+              Create a new user account with the required information.
+            </p>
+          </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
-          {/* Scrollable Body */}
-          <div 
-            className="flex-1 overflow-y-auto custom-scrollbar"
-            style={{
-              scrollbarWidth: 'thin',
-              scrollbarColor: '#CBD5E1 transparent'
-            }}
-          >
-            <div className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="flex flex-col">
+            <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+              <div className="space-y-6">
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Username */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Username <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                  <Label>Username <span className="text-red-500">*</span></Label>
+                  <Input
                     type="text"
-                    required
-                    value={formData.username}
-                    onChange={(e) => handleInputChange('username', e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder="Enter username"
+                    defaultValue={formData.username}
+                    onChange={(e) => handleInputChange('username', e.target.value)}
                   />
                 </div>
 
                 {/* Abbreviation */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Abbreviation <span className="text-red-500">*</span>
-                  </label>
-                  <input
+                  <Label>Abbreviation <span className="text-red-500">*</span></Label>
+                  <Input
                     type="text"
-                    required
-                    value={formData.abbreviation}
-                    onChange={(e) => handleInputChange('abbreviation', e.target.value.toUpperCase())}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder="ABCD"
-                    maxLength={4}
+                    defaultValue={formData.abbreviation}
+                    onChange={(e) => handleInputChange('abbreviation', e.target.value.toUpperCase())}
                   />
                 </div>
               </div>
@@ -505,45 +514,34 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    <Label>Email Address <span className="text-red-500">*</span></Label>
+                    <Input
                       type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="user@company.com"
+                      defaultValue={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
                     />
                   </div>
 
                   {/* Office Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Office Phone <span className="text-red-500">*</span>
-                    </label>
-                    <input
+                    <Label>Office Phone <span className="text-red-500">*</span></Label>
+                    <Input
                       type="tel"
-                      required
-                      value={formData.officePhone}
-                      onChange={(e) => handleInputChange('officePhone', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="+1 (555) 123-4567"
+                      defaultValue={formData.officePhone}
+                      onChange={(e) => handleInputChange('officePhone', e.target.value)}
                     />
                   </div>
 
                   {/* Home Phone */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Home Phone <span className="text-gray-500">(Optional)</span>
-                    </label>
-                    <input
+                    <Label>Home Phone <span className="text-gray-500">(Optional)</span></Label>
+                    <Input
                       type="tel"
-                      value={formData.homePhone}
-                      onChange={(e) => handleInputChange('homePhone', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="+1 (555) 123-4567"
+                      defaultValue={formData.homePhone}
+                      onChange={(e) => handleInputChange('homePhone', e.target.value)}
                     />
                   </div>
 
@@ -584,14 +582,12 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
                 {/* Home Address */}
                 <div className="mt-6">
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Home Address <span className="text-gray-500">(Optional)</span>
-                  </label>
+                  <Label>Home Address <span className="text-gray-500">(Optional)</span></Label>
                   <textarea
                     value={formData.homeAddress}
                     onChange={(e) => handleInputChange('homeAddress', e.target.value)}
                     rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
                     placeholder="Enter home address"
                   />
                 </div>
@@ -629,20 +625,15 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
                   {/* Password Display */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Password <span className="text-red-500">*</span>
-                    </label>
+                    <Label>Password <span className="text-red-500">*</span></Label>
                     <div className="relative">
-                      <input
+                      <Input
                         type={showPassword ? 'text' : 'password'}
-                        required
-                        value={formData.passwordType === 'system' ? generatedPassword : formData.password}
+                        defaultValue={formData.passwordType === 'system' ? generatedPassword : formData.password}
                         onChange={(e) => formData.passwordType === 'admin' && handleInputChange('password', e.target.value)}
-                        readOnly={formData.passwordType === 'system'}
-                        className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
-                          formData.passwordType === 'system' ? 'bg-gray-50 dark:bg-gray-600' : ''
-                        }`}
+                        disabled={formData.passwordType === 'system'}
                         placeholder={formData.passwordType === 'system' ? 'System generated password' : 'Enter password'}
+                        className="pr-10"
                       />
                       <button
                         type="button"
@@ -664,55 +655,45 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                   </div>
                 </div>
               </div>
+              </div>
             </div>
-          </div>
-
-          {/* Footer - Fixed */}
-          <div className="flex flex-col sm:flex-row gap-3 p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0 bg-white dark:bg-gray-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setFormData({
-                  username: '',
-                  abbreviation: '',
-                  roles: [],
-                  division: '',
-                  managerId: '',
-                  email: '',
-                  officePhone: '',
-                  homePhone: '',
-                  homeAddress: '',
-                  status: 'Active',
-                  passwordType: 'system',
-                  password: '',
-                });
-                setGeneratedPassword('');
-              }}
-              className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
-            >
-              Clear
-            </button>
-            <button
-              type="submit"
-              disabled={!areRequiredFieldsFilled()}
-              className={`px-6 py-2 rounded-lg transition-colors ${
-                areRequiredFieldsFilled()
-                  ? 'bg-blue-500 hover:bg-blue-600 text-white'
-                  : 'bg-gray-300 text-gray-500 cursor-not-allowed dark:bg-gray-600 dark:text-gray-400'
-              }`}
-            >
-              Add User
-            </button>
-          </div>
-        </form>
-      </div>
+            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+              <Button size="sm" variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button 
+                size="sm" 
+                variant="outline" 
+                onClick={() => {
+                  setFormData({
+                    username: '',
+                    abbreviation: '',
+                    roles: [],
+                    division: '',
+                    managerId: '',
+                    email: '',
+                    officePhone: '',
+                    homePhone: '',
+                    homeAddress: '',
+                    status: 'Active',
+                    passwordType: 'system',
+                    password: '',
+                  });
+                  setGeneratedPassword('');
+                }}
+              >
+                Clear
+              </Button>
+              <Button 
+                size="sm" 
+                disabled={!areRequiredFieldsFilled()}
+                onClick={handleAddUser}
+              >
+                Add User
+              </Button>
+            </div>
+          </form>
+        </div>
     </div>
   );
 
