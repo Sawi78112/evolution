@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase/client'
-import { User, Session } from '@supabase/supabase-js'
+import type { User, Session, EmailOtpType, SupabaseClient } from '@supabase/supabase-js'
 
 export interface SignUpData {
   email: string
@@ -54,7 +54,7 @@ export interface UserProfile {
   is_locked: boolean | null
   two_factor_enabled: boolean
   two_factor_method: 'Email' | 'SMS' | 'App' | null
-  password_reset_questions: any | null
+  password_reset_questions: unknown | null
   created_at: string
   last_updated_at: string | null
   audit_trail_ids: string[]
@@ -339,7 +339,7 @@ export class AuthService {
     try {
       const { data, error } = await supabase.auth.verifyOtp({
         token_hash: token,
-        type: type as any
+        type: type as EmailOtpType
       })
 
       if (error) {
@@ -455,7 +455,7 @@ export class AuthService {
 // These should only be used in API routes or server components
 export class ServerAuthService {
   // Get current user (server-side only)
-  static async getServerUser(supabaseServerClient: any): Promise<{ user: User | null; profile: UserProfile | null }> {
+  static async getServerUser(supabaseServerClient: SupabaseClient): Promise<{ user: User | null; profile: UserProfile | null }> {
     try {
       const { data: { user }, error } = await supabaseServerClient.auth.getUser()
       

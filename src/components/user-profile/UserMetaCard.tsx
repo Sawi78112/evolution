@@ -87,9 +87,8 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
   };
 
   // Calculate movement limits to prevent blank spaces
-  const getMovementLimits = () => {
+  const getMovementLimits = useCallback(() => {
     const { width, height } = getImageDimensions();
-    const radius = containerSize / 2;
     
     const maxX = Math.max(0, (width - containerSize) / 2);
     const maxY = Math.max(0, (height - containerSize) / 2);
@@ -100,7 +99,7 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
       minY: -maxY,
       maxY: maxY
     };
-  };
+  }, [zoom, imageNaturalSize, containerSize]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -122,7 +121,7 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
         y: constrainedY
       });
     }
-  }, [isDragging, dragStart, zoom, imageNaturalSize]);
+  }, [isDragging, dragStart, getMovementLimits]);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -146,7 +145,7 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
       x: Math.max(limits.minX, Math.min(limits.maxX, prev.x)),
       y: Math.max(limits.minY, Math.min(limits.maxY, prev.y))
     }));
-  }, [zoom, imageNaturalSize]);
+  }, [getMovementLimits]);
 
   const handleReset = () => {
     setPosition({ x: 0, y: 0 });
@@ -268,6 +267,7 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
                 transformOrigin: 'center'
               }}
             >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 ref={imageRef}
                 src={currentImageUrl}

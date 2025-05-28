@@ -1,13 +1,11 @@
 "use client";
 import React, { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/components/ui/notification";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
-import { Modal } from "../ui/modal";
 import { useUserDisplay, useUserAvatar } from "../../hooks/useUserData";
 
 export default function UserDropdown() {
@@ -16,7 +14,7 @@ export default function UserDropdown() {
   const { signOut, user } = useAuth();
   const router = useRouter();
   const notification = useNotification();
-  const { displayInfo, loading } = useUserDisplay();
+  const { displayInfo } = useUserDisplay();
   const { avatarUrl } = useUserAvatar();
 
   const toggleDropdown = () => {

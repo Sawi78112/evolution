@@ -32,8 +32,8 @@ export default function ResetPasswordForm() {
         setError(errorMessage);
         notification.error("Reset Failed", errorMessage);
       }
-    } catch (error: any) {
-      const errorMessage = error.message || "An error occurred while sending reset email";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred while sending reset email";
       setError(errorMessage);
       notification.error("Reset Failed", errorMessage);
     } finally {
@@ -50,7 +50,7 @@ export default function ResetPasswordForm() {
               Reset Password
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email address and we'll send you a link to reset your password.
+              Enter your email address and we&apos;ll send you a link to reset your password.
             </p>
           </div>
           <div>

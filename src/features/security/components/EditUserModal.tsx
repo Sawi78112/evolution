@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { CloseIcon, ChevronDownIcon, CheckLineIcon, EyeIcon, EyeCloseIcon, SearchIcon } from '@/assets/icons';
+import { ChevronDownIcon, CheckLineIcon, EyeIcon, EyeCloseIcon, SearchIcon } from '@/assets/icons';
 import { RoleType, StatusType } from '../types';
 import { roleConfig, statusConfig } from '../constants';
 import Button from '@/components/ui/button/Button';

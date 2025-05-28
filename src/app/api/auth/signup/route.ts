@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
           { status: 400 }
         )
       }
-    } catch (error) {
+    } catch (_error) {
       // Ignore errors from this check - let Supabase Auth handle it
     }
 

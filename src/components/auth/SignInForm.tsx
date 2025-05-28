@@ -41,8 +41,8 @@ export default function SignInForm() {
         setError(errorMessage);
         notification.error("Sign In Failed", errorMessage);
       }
-    } catch (error: any) {
-      const errorMessage = error.message || "An error occurred during sign in";
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during sign in";
       setError(errorMessage);
       notification.error("Sign In Failed", errorMessage);
     } finally {

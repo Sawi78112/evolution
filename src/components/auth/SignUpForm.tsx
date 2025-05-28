@@ -89,9 +89,9 @@ export default function SignUpForm() {
         setError(errorMessage);
         notification.error("Sign Up Failed", errorMessage);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup error:', error);
-      const errorMessage = error.message || "An error occurred during sign up";
+      const errorMessage = error instanceof Error ? error.message : "An error occurred during sign up";
       setError(errorMessage);
       notification.error("Sign Up Failed", errorMessage);
     } finally {

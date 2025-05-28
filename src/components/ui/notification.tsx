@@ -21,13 +21,12 @@ interface NotificationItemProps extends NotificationProps {
 }
 
 // The individual notification component
-function NotificationItem({ id, type, title, message, duration = 5000, onClose, index }: NotificationItemProps) {
-  const [isVisible, setIsVisible] = useState(true)
+function NotificationItem({ type, title, message, duration = 5000, onClose }: Omit<NotificationItemProps, 'id' | 'index'>) {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     timerRef.current = setTimeout(() => {
-      setIsVisible(false)
+      onClose()
     }, duration)
 
     return () => {
@@ -129,9 +128,9 @@ export function NotificationContainer() {
   return createPortal(
     <div className="fixed top-4 right-4 z-[9999999] space-y-4 pointer-events-none">
       <AnimatePresence>
-        {notifications.map((notification, index) => (
+        {notifications.map((notification) => (
           <div key={notification.id} className="pointer-events-auto">
-            <NotificationItem {...notification} index={index} onClose={() => removeNotification(notification.id)} />
+            <NotificationItem {...notification} onClose={() => removeNotification(notification.id)} />
           </div>
         ))}
       </AnimatePresence>

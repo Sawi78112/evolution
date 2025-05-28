@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { AuthService } from '@/lib/auth/auth-service'
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: Request) {
   try {
     const result = await AuthService.signOut()
 

@@ -21,7 +21,6 @@ export interface SecurityEntry {
     abbreviation: string;
   };
   lastLoginIn: string;
-  lastLogOff: string;
   status: StatusType;
   roles: RoleType[];
 }

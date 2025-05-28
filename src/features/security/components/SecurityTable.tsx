@@ -338,12 +338,6 @@ export default function SecurityTable() {
                       {getSortDirectionIndicator('lastLoginIn', sortConfig)}
                     </div>
                   </TableCell>
-                  <TableCell isHeader className="px-4 py-3 min-w-[120px] hidden xl:table-cell">
-                    <div className="flex items-center gap-1 text-left cursor-pointer" onClick={() => requestSort('lastLogOff')}>
-                      <span className="font-medium text-gray-500 dark:text-gray-400">Last Logout</span>
-                      {getSortDirectionIndicator('lastLogOff', sortConfig)}
-                    </div>
-                  </TableCell>
                   <TableCell isHeader className="px-4 py-3 w-24">
                     <div className="flex items-center gap-1 text-left cursor-pointer" onClick={() => requestSort('status')}>
                       <span className="font-medium text-gray-500 dark:text-gray-400">Status</span>
@@ -477,9 +471,6 @@ export default function SecurityTable() {
                     </TableCell>
                     <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400 hidden xl:table-cell">
                       {item.lastLoginIn}
-                    </TableCell>
-                    <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400 hidden xl:table-cell">
-                      {item.lastLogOff}
                     </TableCell>
                     <TableCell className="px-4 py-4">
                       <div className="relative" style={{ position: 'static' }}>

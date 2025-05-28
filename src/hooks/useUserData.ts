@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { getUserAvatar } from '../lib/supabase/user-service';
@@ -65,7 +65,7 @@ export function useUserData(): UseUserDataReturn {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       return;
@@ -76,7 +76,7 @@ export function useUserData(): UseUserDataReturn {
       setError(null);
 
       // Test basic connection first
-      const { data: testData, error: testError } = await supabase
+      const { data: _testData, error: testError } = await supabase
         .from('users')
         .select('user_id, username')
         .limit(1);
@@ -86,7 +86,7 @@ export function useUserData(): UseUserDataReturn {
       }
 
       // Check if we can access any users at all
-      const { data: allUsers, error: allUsersError, count } = await supabase
+      const { data: _allUsers, error: allUsersError, count: _count } = await supabase
         .from('users')
         .select('user_id, username, office_email', { count: 'exact' })
         .limit(5);
@@ -96,7 +96,7 @@ export function useUserData(): UseUserDataReturn {
       }
 
       // Try a simple query by user_id first
-      const { data: userById, error: userByIdError } = await supabase
+      const { data: userById, error: _userByIdError } = await supabase
         .from('users')
         .select(`
           user_id,
@@ -119,7 +119,7 @@ export function useUserData(): UseUserDataReturn {
 
       // Try query by email
       if (user.email) {
-        const { data: userByEmail, error: userByEmailError } = await supabase
+        const { data: userByEmail, error: _userByEmailError } = await supabase
           .from('users')
           .select(`
             user_id,
@@ -203,11 +203,11 @@ export function useUserData(): UseUserDataReturn {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id, user?.email]);
 
   useEffect(() => {
     fetchUserData();
-  }, [user?.id]);
+  }, [fetchUserData]);
 
   return {
     userData,
