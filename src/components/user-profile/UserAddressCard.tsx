@@ -5,57 +5,106 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { useUserData } from "../../hooks/useUserData";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
+  const { userData, loading, error } = useUserData();
+  
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
     closeModal();
   };
+
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
+        <div className="animate-pulse">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+            <div className="flex-1">
+              <div className="h-6 bg-gray-300 rounded w-40 mb-6 dark:bg-gray-600"></div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i}>
+                    <div className="h-4 bg-gray-300 rounded w-20 mb-2 dark:bg-gray-600"></div>
+                    <div className="h-5 bg-gray-300 rounded w-32 dark:bg-gray-600"></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="p-5 border border-red-200 rounded-2xl dark:border-red-800 lg:p-6">
+        <div className="text-red-600 dark:text-red-400">
+          <p className="font-medium">Error loading user data</p>
+          <p className="text-sm">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Helper functions to get display values
+  const getHomeEmail = () => {
+    if (!userData?.home_email || userData.home_email.length === 0) {
+      return "Not Set";
+    }
+    return userData.home_email[0]; // Display first email
+  };
+
+  const getHomePhone = () => {
+    if (!userData?.home_phone || userData.home_phone.length === 0) {
+      return "Not Set";
+    }
+    return userData.home_phone[0]; // Display first phone
+  };
+
+  const getLocation = () => {
+    return userData?.location || "Not Set";
+  };
+
   return (
     <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <h4 className="text-lg font-semibold text-gray-800 dark:text-white/90 lg:mb-6">
-              Address
+              Personal Information
             </h4>
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 lg:gap-7 2xl:gap-x-32">
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Country
+                  Home email
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States
+                  {getHomeEmail()}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  City/State
+                  Home phone
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
+                  {getHomePhone()}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
+                  Location
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
-                </p>
-              </div>
-
-              <div>
-                <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
-                </p>
-                <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  {getLocation()}
                 </p>
               </div>
             </div>
@@ -88,33 +137,34 @@ export default function UserAddressCard() {
         <div className="relative w-full p-4 overflow-y-auto bg-white no-scrollbar rounded-3xl dark:bg-gray-900 lg:p-11">
           <div className="px-2 pr-14">
             <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Edit Address
+              Edit Personal Information
             </h4>
             <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
               Update your details to keep your profile up-to-date.
             </p>
           </div>
           <form className="flex flex-col">
-            <div className="px-2 overflow-y-auto custom-scrollbar">
-              <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                <div>
-                  <Label>Country</Label>
-                  <Input type="text" defaultValue="United States" />
-                </div>
+            <div className="px-2 pb-3">
+              <div>
+                <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
+                  Personal Information
+                </h5>
 
-                <div>
-                  <Label>City/State</Label>
-                  <Input type="text" defaultValue="Arizona, United States." />
-                </div>
+                <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
+                  <div>
+                    <Label>Home email</Label>
+                    <Input type="email" defaultValue={getHomeEmail() === "Not Set" ? "" : getHomeEmail()} />
+                  </div>
 
-                <div>
-                  <Label>Postal Code</Label>
-                  <Input type="text" defaultValue="ERT 2489" />
-                </div>
+                  <div>
+                    <Label>Home phone</Label>
+                    <Input type="text" defaultValue={getHomePhone() === "Not Set" ? "" : getHomePhone()} />
+                  </div>
 
-                <div>
-                  <Label>TAX ID</Label>
-                  <Input type="text" defaultValue="AS4568384" />
+                  <div className="col-span-2">
+                    <Label>Location</Label>
+                    <Input type="text" defaultValue={getLocation() === "Not Set" ? "" : getLocation()} />
+                  </div>
                 </div>
               </div>
             </div>

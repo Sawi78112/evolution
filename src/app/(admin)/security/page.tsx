@@ -13,10 +13,10 @@ export const metadata: Metadata = {
 
 export default function SecurityPage() {
   return (
-    <div>
+    <div className="space-y-6">
       <PageBreadcrumb pageTitle="Security" />
       <div className="space-y-6">
-        <ComponentCard title="User List">
+        <ComponentCard title="User Management">
           <SecurityTable />
         </ComponentCard>
       </div>

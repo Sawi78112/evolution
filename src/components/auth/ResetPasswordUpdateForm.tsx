@@ -6,6 +6,7 @@ import Link from "next/link";
 import Label from "@/components/form/Label";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/lib/supabase/client";
+import { useNotification } from "@/components/ui/notification";
 
 export default function ResetPasswordUpdateForm() {
   const [password, setPassword] = useState("");
@@ -19,6 +20,7 @@ export default function ResetPasswordUpdateForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { updatePassword } = useAuth();
+  const notification = useNotification();
 
   // Check if user is authenticated (came from reset email)
   useEffect(() => {
@@ -61,11 +63,14 @@ export default function ResetPasswordUpdateForm() {
     const passwordError = validatePassword(password);
     if (passwordError) {
       setError(passwordError);
+      notification.error("Invalid Password", passwordError);
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      const errorMessage = "Passwords do not match";
+      setError(errorMessage);
+      notification.error("Password Mismatch", errorMessage);
       return;
     }
 
@@ -75,15 +80,24 @@ export default function ResetPasswordUpdateForm() {
       const result = await updatePassword(password);
       
       if (result.success) {
-        setSuccess("Password updated successfully! Redirecting to sign in...");
-        setTimeout(() => {
+        const successMessage = "Password updated successfully! Redirecting to sign in...";
+        setSuccess(successMessage);
+        notification.success("Password Updated", successMessage);
+        
+        // Clear the reset session by signing out the user, then redirect to signin
+        setTimeout(async () => {
+          await supabase.auth.signOut();
           router.push("/signin");
         }, 2000);
       } else {
-        setError(result.error || "Failed to update password");
+        const errorMessage = result.error || "Failed to update password";
+        setError(errorMessage);
+        notification.error("Update Failed", errorMessage);
       }
     } catch (error: any) {
-      setError(error.message || "An error occurred while updating password");
+      const errorMessage = error.message || "An error occurred while updating password";
+      setError(errorMessage);
+      notification.error("Update Failed", errorMessage);
     } finally {
       setLoading(false);
     }

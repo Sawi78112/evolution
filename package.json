@@ -29,6 +29,8 @@
     "autoprefixer": "^10.4.20",
     "clsx": "^2.1.1",
     "flatpickr": "^4.6.13",
+    "framer-motion": "^12.15.0",
+    "lucide-react": "^0.511.0",
     "next": "^15.3.2",
     "react": "^19.0.0",
     "react-apexcharts": "^1.7.0",

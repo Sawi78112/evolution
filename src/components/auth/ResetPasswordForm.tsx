@@ -3,6 +3,7 @@ import Label from "@/components/form/Label";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
+import { useNotification } from "@/components/ui/notification";
 
 export default function ResetPasswordForm() {
   const [email, setEmail] = useState("");
@@ -11,6 +12,7 @@ export default function ResetPasswordForm() {
   const [success, setSuccess] = useState("");
   
   const { resetPassword } = useAuth();
+  const notification = useNotification();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,12 +24,18 @@ export default function ResetPasswordForm() {
       const result = await resetPassword(email);
       
       if (result.success) {
-        setSuccess("Password reset email sent successfully! Please check your email.");
+        const successMessage = "Password reset email sent successfully! Please check your email.";
+        setSuccess(successMessage);
+        notification.success("Reset Email Sent", successMessage);
       } else {
-        setError(result.error || "An error occurred while sending reset email");
+        const errorMessage = result.error || "An error occurred while sending reset email";
+        setError(errorMessage);
+        notification.error("Reset Failed", errorMessage);
       }
     } catch (error: any) {
-      setError(error.message || "An error occurred while sending reset email");
+      const errorMessage = error.message || "An error occurred while sending reset email";
+      setError(errorMessage);
+      notification.error("Reset Failed", errorMessage);
     } finally {
       setLoading(false);
     }

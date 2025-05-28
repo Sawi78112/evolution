@@ -6,6 +6,7 @@ import Link from "next/link";
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { useNotification } from "@/components/ui/notification";
 
 export default function SignUpForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +26,7 @@ export default function SignUpForm() {
 
   const { signUp } = useAuth();
   const router = useRouter();
+  const notification = useNotification();
 
   // Generate username and abbreviation from first and last name
   const generateUserData = (firstName: string, lastName: string) => {
@@ -52,7 +54,9 @@ export default function SignUpForm() {
     setLoading(true);
 
     if (!isChecked) {
-      setError("Please agree to the Terms and Conditions");
+      const errorMessage = "Please agree to the Terms and Conditions";
+      setError(errorMessage);
+      notification.error("Terms Required", errorMessage);
       setLoading(false);
       return;
     }
@@ -72,13 +76,24 @@ export default function SignUpForm() {
       });
       
       if (result.success) {
-        setSuccess("Account created successfully! Please check your email to verify your account.");
+        const successMessage = "Account created successfully! Please check your email to verify your account.";
+        setSuccess(successMessage);
+        notification.success("Account Created!", successMessage);
+        
+        // Redirect to sign-in page after successful signup
+        setTimeout(() => {
+          router.push('/signin');
+        }, 2000); // Wait 2 seconds to show the success message
       } else {
-        setError(result.error || "An error occurred during sign up");
+        const errorMessage = result.error || "An error occurred during sign up";
+        setError(errorMessage);
+        notification.error("Sign Up Failed", errorMessage);
       }
     } catch (error: any) {
       console.error('Signup error:', error);
-      setError(error.message || "An error occurred during sign up");
+      const errorMessage = error.message || "An error occurred during sign up";
+      setError(errorMessage);
+      notification.error("Sign Up Failed", errorMessage);
     } finally {
       setLoading(false);
     }

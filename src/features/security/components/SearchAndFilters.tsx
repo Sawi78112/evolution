@@ -18,41 +18,43 @@ export function SearchAndFilters({
   onAddUser
 }: SearchAndFiltersProps) {
   return (
-    <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center">
-        <label className="mr-2 text-sm font-medium text-gray-500 dark:text-gray-400">Show</label>
+    <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Items per page selector */}
+      <div className="flex items-center order-2 sm:order-1">
+        <label className="mr-2 text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">Show</label>
         <select
           value={itemsPerPage}
           onChange={(e) => onItemsPerPageChange(Number(e.target.value))}
-          className="rounded border border-gray-300 bg-white px-3 py-1 text-sm font-medium text-gray-500 focus:border-brand-500 focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+          className="rounded border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 min-w-[70px]"
         >
           {itemsPerPageOptions.map(option => (
             <option key={option} value={option}>{option}</option>
           ))}
         </select>
-        <span className="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400">entries</span>
+        <span className="ml-2 text-sm font-medium text-gray-500 dark:text-gray-400 whitespace-nowrap">entries</span>
       </div>
       
-      <div className="flex items-center gap-3">
-        <div className="relative">
+      {/* Search and Add User */}
+      <div className="flex flex-col gap-3 order-1 sm:order-2 sm:flex-row sm:items-center">
+        <div className="relative flex-1 sm:flex-none">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
             <SearchIcon />
           </span>
           <input
             type="text"
-            placeholder="Search..."
+            placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 bg-transparent py-2 pl-10 pr-4 outline-none focus:border-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            className="w-full sm:w-64 rounded-lg border border-gray-300 bg-transparent py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
           />
         </div>
         
         <button
           onClick={onAddUser}
-          className="flex items-center gap-2 rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 sm:px-4 px-3"
+          className="flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 min-w-[120px] sm:min-w-0"
         >
-          <UserPlusIcon />
-          <span className="hidden sm:inline">Add User</span>
+          <UserPlusIcon className="h-4 w-4" />
+          <span>Add User</span>
         </button>
       </div>
     </div>

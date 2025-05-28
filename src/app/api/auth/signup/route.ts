@@ -150,8 +150,97 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Profile will be created automatically by Supabase trigger
-    console.log('✅ User created successfully! Profile will be created by database trigger.')
+    // Now create the user profile in the database
+    try {
+      // Get or create a default division (using 'Alpha' as default)
+      let defaultDivisionId = divisionId;
+      
+      if (!defaultDivisionId) {
+        // Try to find an existing division first
+        const { data: existingDivision } = await supabase
+          .from('divisions')
+          .select('division_id')
+          .eq('name', 'Alpha')
+          .single()
+
+        if (existingDivision) {
+          defaultDivisionId = existingDivision.division_id;
+        } else {
+          // Create a default division if none exists
+          const { data: newDivision, error: divisionError } = await supabase
+            .from('divisions')
+            .insert({
+              name: 'Alpha',
+              code: 'ALPHA',
+              region: 'Default'
+            })
+            .select('division_id')
+            .single()
+
+          if (divisionError) {
+            console.error('Error creating default division:', divisionError)
+            // Continue without division for now
+            defaultDivisionId = null;
+          } else {
+            defaultDivisionId = newDivision.division_id;
+          }
+        }
+      }
+
+      // Create user profile in the database
+      const userProfileData = {
+        user_id: authData.user.id,
+        username: username,
+        user_abbreviation: abbreviation,
+        password_hash: 'supabase_auth', // Placeholder since we use Supabase Auth
+        office_email: email,
+        office_phone: officePhone,
+        user_status: 'Active' as const,
+        two_factor_enabled: true,
+        audit_trail_ids: [],
+        ...(defaultDivisionId && { division_id: defaultDivisionId }),
+        ...(managerId && { manager_user_id: managerId })
+      }
+
+      const { data: userProfile, error: profileError } = await supabase
+        .from('users')
+        .insert(userProfileData)
+        .select()
+        .single()
+
+      if (profileError) {
+        console.error('Error creating user profile:', profileError)
+        // Don't fail the signup if profile creation fails, but log it
+        console.log('User auth created but profile creation failed. User can still sign in.')
+      } else {
+        console.log('User profile created successfully:', userProfile)
+
+        // Assign default "Investigator" role to the user
+        const investigatorRoleId = 'eda74b0a-4ed4-481c-b7e3-3db501957c34'; // Investigator role UUID
+        
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: authData.user.id,
+            role_id: investigatorRoleId,
+            is_active: true
+          })
+
+        if (roleError) {
+          console.error('Error assigning default role:', roleError)
+          // Don't fail the signup if role assignment fails, but log it
+          console.log('User created but role assignment failed. Role can be assigned later.')
+        } else {
+          console.log('Default Investigator role assigned successfully')
+        }
+      }
+    } catch (dbError) {
+      console.error('Database operation error:', dbError)
+      // Don't fail the signup if database operations fail
+      console.log('User auth created but database profile creation failed. User can still sign in.')
+    }
+
+    console.log('✅ User created successfully!')
 
     return NextResponse.json({
       message: 'User created successfully. Please check your email to verify your account.',

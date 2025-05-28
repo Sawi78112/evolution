@@ -4,6 +4,7 @@ import './globals.css';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { NotificationContainer } from '@/components/ui/notification';
 import type { Metadata } from 'next';
 
 const outfit = Outfit({
@@ -33,6 +34,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <SidebarProvider>{children}</SidebarProvider>
+            <NotificationContainer />
           </AuthProvider>
         </ThemeProvider>
       </body>

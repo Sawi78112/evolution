@@ -2,6 +2,8 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  console.log('🚀 MIDDLEWARE TRIGGERED:', request.nextUrl.pathname)
+  
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -35,32 +37,49 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  // Define protected routes
-  const protectedRoutes = ['/admin', '/dashboard', '/profile']
-  const authRoutes = ['/signin', '/signup', '/reset-password']
+  // Get session to check for password reset flow
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  const pathname = request.nextUrl.pathname
   
-  const isProtectedRoute = protectedRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  )
-  const isAuthRoute = authRoutes.some(route => 
-    request.nextUrl.pathname.startsWith(route)
-  )
+  // Debug logging
+  console.log('🔍 Middleware Debug:', {
+    pathname,
+    hasUser: !!user,
+    userEmail: user?.email,
+    hasSession: !!session,
+    searchParams: Object.fromEntries(request.nextUrl.searchParams.entries()),
+    cookies: request.cookies.getAll().map(c => c.name)
+  })
 
-  // If user is not logged in and trying to access protected route
-  if (!user && isProtectedRoute) {
+  // Check if user is in password reset flow
+  // This can happen when they click the reset link from email with type=recovery parameter
+  const hasRecoveryParam = request.nextUrl.searchParams.get('type') === 'recovery'
+  
+  // If user clicks reset link with recovery parameter, redirect to password update page
+  if (hasRecoveryParam && user) {
     const url = request.nextUrl.clone()
-    url.pathname = '/signin'
-    url.searchParams.set('redirectTo', request.nextUrl.pathname)
+    url.pathname = '/reset-password/update'
+    url.search = '' // Clear the query parameters
+    console.log('🔄 Redirecting recovery link user to password update page')
     return NextResponse.redirect(url)
   }
-
-  // If user is logged in and trying to access auth routes, redirect to dashboard
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/dashboard'
-    return NextResponse.redirect(url)
+  
+  // Handle root route - redirect to signin if not authenticated, allow access if authenticated
+  if (pathname === '/') {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/signin'
+      return NextResponse.redirect(url)
+    }
+    // If authenticated and not in password reset flow, allow access to root page
   }
 
+  // DISABLED: Route protection is now handled by client-side hooks and components
+  // This allows for better UX with loading states and proper redirects
+  
   // IMPORTANT: You *must* return the supabaseResponse object as it is. If you're
   // creating a new response object with NextResponse.next() make sure to:
   // 1. Pass the request in it, like so:

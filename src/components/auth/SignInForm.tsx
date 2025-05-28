@@ -5,7 +5,8 @@ import { EyeCloseIcon, EyeIcon } from "@/assets/icons";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useNotification } from "@/components/ui/notification";
 
 export default function SignInForm() {
   const [showPassword, setShowPassword] = useState(false);
@@ -17,6 +18,8 @@ export default function SignInForm() {
   
   const { signIn } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const notification = useNotification();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +30,21 @@ export default function SignInForm() {
       const result = await signIn(email, password);
       
       if (result.success) {
-        router.push("/");
+        // Set flag to show welcome notification on dashboard
+        sessionStorage.setItem('justSignedIn', 'true');
+        
+        // Get the intended destination from URL params or use default
+        const redirectTo = searchParams.get("redirectTo") || "/";
+        router.push(redirectTo);
       } else {
-        setError(result.error || "An error occurred during sign in");
+        const errorMessage = result.error || "An error occurred during sign in";
+        setError(errorMessage);
+        notification.error("Sign In Failed", errorMessage);
       }
     } catch (error: any) {
-      setError(error.message || "An error occurred during sign in");
+      const errorMessage = error.message || "An error occurred during sign in";
+      setError(errorMessage);
+      notification.error("Sign In Failed", errorMessage);
     } finally {
       setLoading(false);
     }

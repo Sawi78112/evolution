@@ -1,7 +1,11 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter, usePathname } from 'next/navigation';
 import GridShape from "@/components/common/GridShape";
 import ThemeTogglerTwo from "@/components/common/ThemeTogglerTwo";
-
 import { ThemeProvider } from "@/context/ThemeContext";
+import { useAuth } from "@/context/AuthContext";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
@@ -11,6 +15,23 @@ export default function AuthLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    // Allow access to password reset update page even if authenticated
+    // This is necessary because Supabase automatically signs users in when they click the reset link
+    if (pathname === '/reset-password/update') {
+      return; // Don't redirect, allow access to password update page
+    }
+
+    // If user is already authenticated and not on password reset page, redirect to home page
+    if (!loading && user) {
+      router.push('/');
+    }
+  }, [user, loading, router, pathname]);
+
   return (
     <div className="relative p-6 bg-white z-1 dark:bg-gray-900 sm:p-0">
       <ThemeProvider>

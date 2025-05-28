@@ -39,12 +39,20 @@ export default function Error404() {
           We can’t seem to find the page you are looking for!
         </p>
 
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
-        >
-          Back to Home Page
-        </Link>
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link
+            href="/"
+            className="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-5 py-3.5 text-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200"
+          >
+            Back to Previous Page
+          </Link>
+          <Link
+            href="/signin"
+            className="inline-flex items-center justify-center rounded-lg border border-brand-500 bg-brand-500 px-5 py-3.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 hover:border-brand-600 dark:border-brand-400 dark:bg-brand-400 dark:hover:bg-brand-500 dark:hover:border-brand-500"
+          >
+            Sign In
+          </Link>
+        </div>
       </div>
       {/* <!-- Footer --> */}
       <p className="absolute text-sm text-center text-gray-500 -translate-x-1/2 bottom-6 left-1/2 dark:text-gray-400">
