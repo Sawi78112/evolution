@@ -71,6 +71,22 @@ export async function POST(request: NextRequest) {
       // Ignore errors from this check - let Supabase Auth handle it
     }
 
+    // Get the correct redirect URL for production
+    const getRedirectUrl = () => {
+      // In production, use the request headers to get the correct domain
+      const forwardedHost = request.headers.get('x-forwarded-host')
+      const forwardedProto = request.headers.get('x-forwarded-proto')
+      const host = request.headers.get('host')
+      
+      if (forwardedHost) {
+        return `${forwardedProto || 'https'}://${forwardedHost}`
+      } else if (host) {
+        return `${forwardedProto || 'https'}://${host}`
+      } else {
+        return process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'
+      }
+    }
+
     // Create the auth user first
     const { data: authData, error: authError } = await supabase.auth.signUp({
       email: email,
@@ -82,7 +98,7 @@ export async function POST(request: NextRequest) {
           abbreviation: abbreviation,
           officePhone: officePhone
         },
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`
+        emailRedirectTo: `${getRedirectUrl()}/auth/callback`
       }
     })
 
