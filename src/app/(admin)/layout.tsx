@@ -7,6 +7,9 @@ import Backdrop from "@/components/layout/Backdrop";
 import ProtectedRoute from "@/components/common/ProtectedRoute";
 import React from "react";
 
+// Note: Metadata cannot be exported from client components
+// Consider moving this to a parent server component if SEO is important
+
 export default function AdminLayout({
   children,
 }: {
