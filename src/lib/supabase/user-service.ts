@@ -255,7 +255,7 @@ export async function updateAddressInfo(
 ): Promise<UpdateUserProfileResult> {
   try {
     // Prepare the update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       last_updated_at: new Date().toISOString()
     };
 

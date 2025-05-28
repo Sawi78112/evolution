@@ -28,7 +28,7 @@ export default function ResetPasswordUpdateForm() {
         if (!session) {
           setError('Invalid or expired reset link. Please request a new password reset.');
         }
-      } catch (error) {
+      } catch (_error) {
         setError('Invalid or expired reset link. Please request a new password reset.');
       }
     };

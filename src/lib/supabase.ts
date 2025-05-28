@@ -39,7 +39,7 @@ export type Database = {
           is_locked: boolean | null
           two_factor_enabled: boolean
           two_factor_method: 'Email' | 'SMS' | 'App' | null
-          password_reset_questions: any | null
+          password_reset_questions: unknown | null
           created_at: string
           last_updated_at: string | null
           audit_trail_ids: string[]
@@ -66,7 +66,7 @@ export type Database = {
           is_locked?: boolean | null
           two_factor_enabled?: boolean
           two_factor_method?: 'Email' | 'SMS' | 'App' | null
-          password_reset_questions?: any | null
+          password_reset_questions?: unknown | null
           created_at?: string
           last_updated_at?: string | null
           audit_trail_ids?: string[]
@@ -93,7 +93,7 @@ export type Database = {
           is_locked?: boolean | null
           two_factor_enabled?: boolean
           two_factor_method?: 'Email' | 'SMS' | 'App' | null
-          password_reset_questions?: any | null
+          password_reset_questions?: unknown | null
           created_at?: string
           last_updated_at?: string | null
           audit_trail_ids?: string[]

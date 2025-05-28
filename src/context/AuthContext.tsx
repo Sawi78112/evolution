@@ -235,8 +235,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     resetPassword,
     updatePassword,
     refreshUser,
-    hasRole: (role: string) => true,
-    hasPermission: (permission: string) => true
+    hasRole: (_role: string) => true,
+    hasPermission: (_permission: string) => true
   }
 
   return (
@@ -286,13 +286,13 @@ export function usePermissions() {
     throw new Error('usePermissions must be used within an AuthProvider')
   }
 
-  const hasRole = (role: string) => {
+  const hasRole = (_role: string) => {
     // This would integrate with your roles system
     // For now, returning true as placeholder
     return true
   }
 
-  const hasPermission = (permission: string) => {
+  const hasPermission = (_permission: string) => {
     // This would integrate with your permissions system
     // For now, returning true as placeholder
     return true
