@@ -1,4 +1,5 @@
 import { supabase } from './client';
+import { updateUserAvatar } from './user-service';
 
 export interface UploadAvatarOptions {
   userId: string;
@@ -21,34 +22,65 @@ export async function uploadAvatar({
   fileName 
 }: UploadAvatarOptions): Promise<UploadAvatarResult> {
   try {
+    console.log('🚀 Starting avatar upload for user:', userId);
+    console.log('📁 File details:', {
+      size: file.size,
+      type: file.type || 'unknown'
+    });
+
     // Generate unique filename if not provided
     const timestamp = Date.now();
     const finalFileName = fileName || `avatar-${userId}-${timestamp}.jpg`;
     
-    // Upload to Supabase storage
+    console.log('📝 Uploading file as:', finalFileName);
+
+    // Upload to Supabase storage (avatar bucket already exists)
     const { data, error } = await supabase.storage
-      .from('avatars')
+      .from('avatar')
       .upload(finalFileName, file, {
         cacheControl: '3600',
         upsert: true // Replace existing file if it exists
       });
 
     if (error) {
-      console.error('Upload error:', error);
+      console.error('❌ Upload error details:', {
+        message: error.message,
+        error: error
+      });
       return { success: false, error: error.message };
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(finalFileName);
+    console.log('✅ File uploaded successfully:', data);
+
+    // Generate signed URL with 1 year expiration (365 days * 24 hours * 60 minutes * 60 seconds)
+    const oneYearInSeconds = 365 * 24 * 60 * 60;
+    const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+      .from('avatar')
+      .createSignedUrl(finalFileName, oneYearInSeconds);
+
+    if (signedUrlError) {
+      console.error('❌ Signed URL error:', signedUrlError);
+      return { success: false, error: signedUrlError.message };
+    }
+
+    console.log('🔗 Signed URL generated (1 year expiration):', signedUrlData.signedUrl);
+
+    // Update the users table with the new avatar URL
+    const updateResult = await updateUserAvatar(userId, signedUrlData.signedUrl);
+    
+    if (!updateResult.success) {
+      console.error('❌ Failed to update user avatar URL in database:', updateResult.error);
+      return { success: false, error: `Upload successful but failed to update database: ${updateResult.error}` };
+    }
+
+    console.log('✅ Avatar URL updated in users table successfully');
 
     return { 
       success: true, 
-      url: urlData.publicUrl 
+      url: signedUrlData.signedUrl 
     };
   } catch (error) {
-    console.error('Upload exception:', error);
+    console.error('❌ Upload exception:', error);
     return { 
       success: false, 
       error: error instanceof Error ? error.message : 'Unknown error' 
@@ -62,17 +94,18 @@ export async function uploadAvatar({
 export async function deleteAvatar(fileName: string): Promise<boolean> {
   try {
     const { error } = await supabase.storage
-      .from('avatars')
+      .from('avatar')
       .remove([fileName]);
 
     if (error) {
-      console.error('Delete error:', error);
+      console.error('❌ Delete error:', error);
       return false;
     }
 
+    console.log('✅ Avatar deleted successfully');
     return true;
   } catch (error) {
-    console.error('Delete exception:', error);
+    console.error('❌ Delete exception:', error);
     return false;
   }
 }

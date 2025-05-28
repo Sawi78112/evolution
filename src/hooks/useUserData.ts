@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/context/AuthContext';
+import { getUserAvatar } from '../lib/supabase/user-service';
 
 export interface UserData {
   user_id: string;
@@ -16,6 +17,11 @@ export interface UserData {
   home_phone: string[] | null;
   location: string | null;
   user_status: 'Active' | 'Inactive' | 'Transferred' | 'Canceled';
+  avatar_url?: string | null;
+  linkedin_link?: string | null;
+  x_link?: string | null;
+  facebook_link?: string | null;
+  instagram_link?: string | null;
 }
 
 export interface UseUserDataReturn {
@@ -102,7 +108,12 @@ export function useUserData(): UseUserDataReturn {
           home_email,
           home_phone,
           location,
-          user_status
+          user_status,
+          avatar_url,
+          linkedin_link,
+          x_link,
+          facebook_link,
+          instagram_link
         `)
         .eq('user_id', user.id);
 
@@ -120,7 +131,12 @@ export function useUserData(): UseUserDataReturn {
             home_email,
             home_phone,
             location,
-            user_status
+            user_status,
+            avatar_url,
+            linkedin_link,
+            x_link,
+            facebook_link,
+            instagram_link
           `)
           .eq('office_email', user.email);
 
@@ -198,5 +214,27 @@ export function useUserData(): UseUserDataReturn {
     loading,
     error,
     refetch: fetchUserData
+  };
+}
+
+// Add avatar functionality to existing hooks
+export function useUserAvatar() {
+  const { userData, loading, refetch } = useUserData();
+  const [error, setError] = useState<string | null>(null);
+
+  // Get avatar URL from userData (users table) or use default
+  const avatarUrl = userData?.avatar_url || '/images/default-avatar.svg';
+
+  // Function to refresh avatar (triggers userData refetch)
+  const refreshAvatar = async () => {
+    console.log('🔄 Refreshing avatar data...');
+    await refetch();
+  };
+
+  return {
+    avatarUrl,
+    loading,
+    error,
+    refreshAvatar
   };
 } 

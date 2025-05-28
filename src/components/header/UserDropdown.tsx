@@ -8,15 +8,16 @@ import { useNotification } from "@/components/ui/notification";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Modal } from "../ui/modal";
-import { useUserDisplay } from "../../hooks/useUserData";
+import { useUserDisplay, useUserAvatar } from "../../hooks/useUserData";
 
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const router = useRouter();
   const notification = useNotification();
   const { displayInfo, loading } = useUserDisplay();
+  const { avatarUrl } = useUserAvatar();
 
   const toggleDropdown = () => {
     setIsOpen(!isOpen);
@@ -27,7 +28,6 @@ export default function UserDropdown() {
   };
 
   const { displayName, displayEmail } = displayInfo;
-  const avatarUrl = "/images/user/user-09.jpg"; // TODO: Use actual avatar from userData when available
 
   const handleSignOut = async () => {
     setIsLoggingOut(true);
@@ -60,7 +60,7 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dark:text-gray-400 dropdown-toggle"
       >
         <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <Image
+          <img
             width={44}
             height={44}
             src={avatarUrl}

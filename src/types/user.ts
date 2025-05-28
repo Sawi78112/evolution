@@ -11,6 +11,21 @@ export interface User {
   isActive: boolean;
 }
 
+// Avatar-related types
+export interface UserAvatar {
+  id: string;
+  user_id: string;
+  avatar_url: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AvatarUploadResult {
+  success: boolean;
+  avatarUrl?: string;
+  error?: string;
+}
+
 export interface UserProfile {
   id: string;
   firstName: string;

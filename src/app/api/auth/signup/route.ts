@@ -233,6 +233,9 @@ export async function POST(request: NextRequest) {
         } else {
           console.log('Default Investigator role assigned successfully')
         }
+
+        // Note: Avatar URL will be stored in users.avatar_url field when user uploads an avatar
+        // No need to create separate user_avatars record during signup
       }
     } catch (dbError) {
       console.error('Database operation error:', dbError)

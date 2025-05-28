@@ -1,0 +1,45 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Gradient for background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667EEA;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764BA2;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Gradient for person -->
+    <linearGradient id="personGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:0.9" />
+      <stop offset="100%" style="stop-color:#F8FAFC;stop-opacity:0.8" />
+    </linearGradient>
+    
+    <!-- Shadow filter -->
+    <filter id="dropShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#000000" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+  
+  <!-- Background circle with gradient -->
+  <circle cx="100" cy="100" r="100" fill="url(#bgGradient)"/>
+  
+  <!-- Subtle inner shadow ring -->
+  <circle cx="100" cy="100" r="95" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  
+  <!-- Person icon with better proportions -->
+  <g transform="translate(100, 100)" filter="url(#dropShadow)">
+    <!-- Head - larger and better positioned -->
+    <circle cx="0" cy="-25" r="28" fill="url(#personGradient)"/>
+    
+    <!-- Body/Shoulders - more realistic shape -->
+    <path d="M-35 35 C-35 5, -20 -10, 0 -10 C20 -10, 35 5, 35 35 L35 50 L-35 50 Z" 
+          fill="url(#personGradient)"/>
+  </g>
+  
+  <!-- Decorative elements -->
+  <!-- Small accent dots -->
+  <circle cx="30" cy="40" r="2" fill="rgba(255,255,255,0.3)"/>
+  <circle cx="170" cy="160" r="1.5" fill="rgba(255,255,255,0.2)"/>
+  <circle cx="25" cy="150" r="1" fill="rgba(255,255,255,0.25)"/>
+  
+  <!-- Subtle highlight on top -->
+  <ellipse cx="100" cy="80" rx="60" ry="20" fill="rgba(255,255,255,0.1)"/>
+</svg> 

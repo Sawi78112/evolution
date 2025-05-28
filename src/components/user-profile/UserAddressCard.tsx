@@ -1,20 +1,84 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useUserData } from "../../hooks/useUserData";
+import { updateAddressInfo, UpdateAddressInfoData } from "../../lib/supabase/user-service";
+import { useAuth } from "../../context/AuthContext";
+import { useNotification } from "../ui/notification";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const { userData, loading, error } = useUserData();
+  const { userData, loading, error, refetch } = useUserData();
+  const { user, refreshUser } = useAuth();
+  const notification = useNotification();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  // Form state
+  const [formData, setFormData] = useState({
+    homeEmail: '',
+    homePhone: '',
+    location: ''
+  });
+
+  // Initialize form data when modal opens
+  React.useEffect(() => {
+    if (isOpen && userData) {
+      setFormData({
+        homeEmail: getHomeEmail() === "Not Set" ? '' : getHomeEmail(),
+        homePhone: getHomePhone() === "Not Set" ? '' : getHomePhone(),
+        location: getLocation() === "Not Set" ? '' : getLocation()
+      });
+      setSaveError(null);
+    }
+  }, [isOpen, userData]);
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const addressData: UpdateAddressInfoData = {
+        homeEmail: formData.homeEmail.trim() || undefined,
+        homePhone: formData.homePhone.trim() || undefined,
+        location: formData.location.trim() || undefined,
+      };
+
+      const result = await updateAddressInfo(user.id, addressData);
+
+      if (result.success) {
+        // Refresh user data to show updated information
+        await refetch();
+        await refreshUser();
+        
+        // Show success toast notification
+        notification.success("Personal Information Updated!", "Your personal information has been updated successfully.");
+        console.log("Personal information updated successfully");
+        
+        // Close modal immediately
+        closeModal();
+      } else {
+        setSaveError(result.error || 'Failed to update personal information');
+      }
+    } catch (error) {
+      console.error('Error updating personal information:', error);
+      setSaveError('An unexpected error occurred');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Show loading state
@@ -54,17 +118,11 @@ export default function UserAddressCard() {
 
   // Helper functions to get display values
   const getHomeEmail = () => {
-    if (!userData?.home_email || userData.home_email.length === 0) {
-      return "Not Set";
-    }
-    return userData.home_email[0]; // Display first email
+    return userData?.home_email?.[0] || "Not Set";
   };
 
   const getHomePhone = () => {
-    if (!userData?.home_phone || userData.home_phone.length === 0) {
-      return "Not Set";
-    }
-    return userData.home_phone[0]; // Display first phone
+    return userData?.home_phone?.[0] || "Not Set";
   };
 
   const getLocation = () => {
@@ -145,6 +203,12 @@ export default function UserAddressCard() {
           </div>
           <form className="flex flex-col">
             <div className="px-2 pb-3">
+              {saveError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                  {saveError}
+                </div>
+              )}
+              
               <div>
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Personal Information
@@ -153,27 +217,45 @@ export default function UserAddressCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div>
                     <Label>Home email</Label>
-                    <Input type="email" defaultValue={getHomeEmail() === "Not Set" ? "" : getHomeEmail()} />
+                    <input
+                      type="email"
+                      value={formData.homeEmail}
+                      onChange={(e) => handleInputChange('homeEmail', e.target.value)}
+                      placeholder="user@example.com"
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
 
                   <div>
                     <Label>Home phone</Label>
-                    <Input type="text" defaultValue={getHomePhone() === "Not Set" ? "" : getHomePhone()} />
+                    <input
+                      type="tel"
+                      value={formData.homePhone}
+                      onChange={(e) => handleInputChange('homePhone', e.target.value)}
+                      placeholder="+1 (555) 123-4567"
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
 
                   <div className="col-span-2">
                     <Label>Location</Label>
-                    <Input type="text" defaultValue={getLocation() === "Not Set" ? "" : getLocation()} />
+                    <input
+                      type="text"
+                      value={formData.location}
+                      onChange={(e) => handleInputChange('location', e.target.value)}
+                      placeholder="City, State, Country"
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button size="sm" variant="outline" onClick={closeModal} disabled={isSaving}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </form>

@@ -8,7 +8,10 @@ import Label from "../form/Label";
 import Image from "next/image";
 import Badge from "../ui/badge/Badge";
 import { uploadAvatar, dataURLtoBlob } from "../../lib/supabase/storage";
-import { useUserData } from "../../hooks/useUserData";
+import { useUserData, useUserAvatar } from "../../hooks/useUserData";
+import { updateUserProfile, UpdateUserProfileData, updateUserAvatar } from "../../lib/supabase/user-service";
+import { useAuth } from "../../context/AuthContext";
+import { useNotification } from "../ui/notification";
 
 interface PhotoEditModalProps {
   isOpen: boolean;
@@ -357,15 +360,93 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
 
 export default function UserMetaCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const { userData, loading, error } = useUserData();
+  const { userData, loading, error, refetch } = useUserData();
+  const { user, refreshUser } = useAuth();
+  const { avatarUrl: userAvatarUrl, refreshAvatar } = useUserAvatar();
+  const notification = useNotification();
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [tempImageForEdit, setTempImageForEdit] = useState<string | null>(null);
   const [isPhotoEditOpen, setIsPhotoEditOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  // Form state
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    linkedinUrl: '',
+    twitterUrl: '',
+    facebookUrl: '',
+    instagramUrl: ''
+  });
+
+  // Initialize form data when modal opens
+  React.useEffect(() => {
+    if (isOpen && userData) {
+      const nameParts = userData.username?.split(' ') || ['', ''];
+      setFormData({
+        firstName: nameParts[0] || '',
+        lastName: nameParts.slice(1).join(' ') || '',
+        linkedinUrl: userData.linkedin_link || '',
+        twitterUrl: userData.x_link || '',
+        facebookUrl: userData.facebook_link || '',
+        instagramUrl: userData.instagram_link || ''
+      });
+      setSaveError(null);
+    }
+  }, [isOpen, userData]);
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+
+    // Validation
+    if (!formData.firstName.trim() || !formData.lastName.trim()) {
+      setSaveError('First name and last name are required');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const profileData: UpdateUserProfileData = {
+        firstName: formData.firstName.trim(),
+        lastName: formData.lastName.trim(),
+        linkedinUrl: formData.linkedinUrl.trim() || undefined,
+        twitterUrl: formData.twitterUrl.trim() || undefined,
+        facebookUrl: formData.facebookUrl.trim() || undefined,
+        instagramUrl: formData.instagramUrl.trim() || undefined,
+      };
+
+      const result = await updateUserProfile(user.id, profileData);
+
+      if (result.success) {
+        // Refresh user data to show updated information
+        await refetch();
+        await refreshUser();
+        
+        // Show success toast notification
+        notification.success("Profile Updated!", "Your profile information has been updated successfully.");
+        console.log("Profile updated successfully");
+        
+        // Close modal immediately
+        closeModal();
+      } else {
+        setSaveError(result.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      setSaveError('An unexpected error occurred');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -383,34 +464,45 @@ export default function UserMetaCard() {
   };
 
   const handleSaveEditedPhoto = async (croppedImage: string) => {
-    setSelectedImage(croppedImage);
     setIsPhotoEditOpen(false);
+    
+    if (!user?.id) {
+      console.error('No user ID available for avatar upload');
+      notification.error("Upload Error", "Unable to upload avatar - no user ID available");
+      return;
+    }
     
     try {
       // Convert base64 to blob
       const blob = dataURLtoBlob(croppedImage);
       
-      // TODO: Get actual user ID from auth context
-      const userId = userData?.user_id || "current-user-id";
-      
-      // Upload to Supabase storage
+      // Upload to Supabase storage (this already updates the database)
       const result = await uploadAvatar({
-        userId,
+        userId: user.id,
         file: blob,
-        fileName: `avatar-${userId}-${Date.now()}.jpg`
+        fileName: `avatar-${user.id}-${Date.now()}.jpg`
       });
       
       if (result.success && result.url) {
-        console.log("Avatar uploaded successfully:", result.url);
-        // TODO: Update user profile in database with new avatar URL
-        // await updateUserProfile({ avatar_url: result.url });
+        console.log("Avatar uploaded and database updated successfully:", result.url);
+        
+        // Show success notification
+        notification.success("Avatar Updated!", "Your profile photo has been updated successfully.");
+        
+        // Refresh avatar display and user data
+        await refreshAvatar();
+        await refetch();
+        await refreshUser();
+        
+        // Clear selected image so it uses the fresh data from database
+        setSelectedImage(null);
       } else {
         console.error("Upload failed:", result.error);
-        // TODO: Show error toast to user
+        notification.error("Upload Error", result.error || "Failed to upload avatar");
       }
     } catch (error) {
       console.error("Error uploading avatar:", error);
-      // TODO: Show error toast to user
+      notification.error("Upload Error", "An unexpected error occurred while uploading your avatar");
     }
   };
 
@@ -451,7 +543,8 @@ export default function UserMetaCard() {
   // Default values if userData is not available
   const displayName = userData?.username || "User";
   const userStatus = userData?.user_status || "Active";
-  const avatarUrl = selectedImage || "/images/user/user-09.jpg";
+  // Use userAvatarUrl from database, fallback to selectedImage only during upload process
+  const avatarUrl = userAvatarUrl || selectedImage || '/images/default-avatar.svg';
 
   return (
     <>
@@ -459,12 +552,20 @@ export default function UserMetaCard() {
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
             <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 relative group cursor-pointer">
-              <Image
+              <img
                 width={80}
                 height={80}
                 src={avatarUrl}
                 alt="user"
                 className="object-cover"
+                onError={(e) => {
+                  console.error('Avatar image failed to load:', avatarUrl);
+                  // Fallback to default avatar on error
+                  e.currentTarget.src = '/images/default-avatar.svg';
+                }}
+                onLoad={() => {
+                  console.log('Avatar image loaded successfully:', avatarUrl);
+                }}
               />
               <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                 <svg
@@ -510,7 +611,60 @@ export default function UserMetaCard() {
               </div>
             </div>
             <div className="flex items-center order-2 gap-2 grow xl:order-3 xl:justify-end">
-              {/* Social links will be added back when database columns are available */}
+              {/* Social links display */}
+              <div className="flex items-center gap-3">
+                {userData?.linkedin_link && (
+                  <a
+                    href={userData.linkedin_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-11 h-11 text-gray-500 transition-colors bg-gray-100 rounded-full hover:bg-blue-100 hover:text-blue-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-blue-900 dark:hover:text-blue-400"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {userData?.x_link && (
+                  <a
+                    href={userData.x_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-11 h-11 text-gray-500 transition-colors bg-gray-100 rounded-full hover:bg-gray-900 hover:text-white dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {userData?.facebook_link && (
+                  <a
+                    href={userData.facebook_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-11 h-11 text-gray-500 transition-colors bg-gray-100 rounded-full hover:bg-blue-600 hover:text-white dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-blue-600"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                    </svg>
+                  </a>
+                )}
+                
+                {userData?.instagram_link && (
+                  <a
+                    href={userData.instagram_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center w-11 h-11 text-gray-500 transition-colors bg-gray-100 rounded-full hover:bg-pink-600 hover:text-white dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-pink-600"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
             </div>
           </div>
           <button
@@ -548,6 +702,12 @@ export default function UserMetaCard() {
           </div>
           <form className="flex flex-col">
             <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+              {saveError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                  {saveError}
+                </div>
+              )}
+              
               <div>
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Personal Information
@@ -556,48 +716,88 @@ export default function UserMetaCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
                     <Label>First Name</Label>
-                    <Input type="text" defaultValue={userData?.username?.split(' ')[0] || ""} />
+                    <input
+                      type="text" 
+                      value={formData.firstName}
+                      onChange={(e) => handleInputChange('firstName', e.target.value)}
+                      placeholder="Enter first name"
+                      required
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Last Name</Label>
-                    <Input type="text" defaultValue={userData?.username?.split(' ')[1] || ""} />
+                    <input
+                      type="text" 
+                      value={formData.lastName}
+                      onChange={(e) => handleInputChange('lastName', e.target.value)}
+                      placeholder="Enter last name"
+                      required
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
                 </div>
-                  </div>
+              </div>
 
               <div className="mt-7">
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
-                  Contact Information
+                  Social Links
                 </h5>
 
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
-                  <div>
-                    <Label>Office Email</Label>
-                    <Input
-                      type="email"
-                      defaultValue={userData?.office_email || ""}
-                      disabled
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>LinkedIn</Label>
+                    <input
+                      type="url"
+                      value={formData.linkedinUrl}
+                      onChange={(e) => handleInputChange('linkedinUrl', e.target.value)}
+                      placeholder="https://linkedin.com/in/username"
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
                     />
                   </div>
 
-                  <div>
-                    <Label>Office Phone</Label>
-                    <Input 
-                      type="text" 
-                      defaultValue={userData?.office_phone || ""} 
-                      disabled
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Twitter</Label>
+                    <input
+                      type="url"
+                      value={formData.twitterUrl}
+                      onChange={(e) => handleInputChange('twitterUrl', e.target.value)}
+                      placeholder="https://twitter.com/username"
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Facebook</Label>
+                    <input
+                      type="url"
+                      value={formData.facebookUrl}
+                      onChange={(e) => handleInputChange('facebookUrl', e.target.value)}
+                      placeholder="https://facebook.com/username"
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
+                  </div>
+
+                  <div className="col-span-2 lg:col-span-1">
+                    <Label>Instagram</Label>
+                    <input
+                      type="url"
+                      value={formData.instagramUrl}
+                      onChange={(e) => handleInputChange('instagramUrl', e.target.value)}
+                      placeholder="https://instagram.com/username"
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
                     />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button size="sm" variant="outline" onClick={closeModal} disabled={isSaving}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </form>

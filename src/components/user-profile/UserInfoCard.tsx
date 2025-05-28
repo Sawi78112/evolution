@@ -1,20 +1,104 @@
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useUserData } from "../../hooks/useUserData";
+import { updateOfficialInfo, UpdateOfficialInfoData } from "../../lib/supabase/user-service";
+import { useAuth } from "../../context/AuthContext";
+import { useNotification } from "../ui/notification";
 
 export default function UserInfoCard() {
   const { isOpen, openModal, closeModal } = useModal();
-  const { userData, loading, error } = useUserData();
+  const { userData, loading, error, refetch } = useUserData();
+  const { user, refreshUser } = useAuth();
+  const notification = useNotification();
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   
-  const handleSave = () => {
-    // Handle save logic here
-    console.log("Saving changes...");
-    closeModal();
+  // Form state
+  const [formData, setFormData] = useState({
+    abbreviation: '',
+    officeEmail: '',
+    officePhone: ''
+  });
+
+  // Initialize form data when modal opens
+  React.useEffect(() => {
+    if (isOpen && userData) {
+      setFormData({
+        abbreviation: userData.user_abbreviation || '',
+        officeEmail: userData.office_email || '',
+        officePhone: userData.office_phone || ''
+      });
+      setSaveError(null);
+    }
+  }, [isOpen, userData]);
+
+  const handleInputChange = (field: keyof typeof formData, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: field === 'abbreviation' ? value.toUpperCase() : value
+    }));
+  };
+
+  const handleSave = async () => {
+    if (!user) return;
+
+    // Validation
+    const abbreviation = formData.abbreviation.trim();
+    const officeEmail = formData.officeEmail.trim();
+    const officePhone = formData.officePhone.trim();
+
+    if (!abbreviation || !officeEmail || !officePhone) {
+      setSaveError('All fields are required');
+      return;
+    }
+
+    if (abbreviation.length !== 4 || !/^[A-Z]{4}$/.test(abbreviation)) {
+      setSaveError('Abbreviation must be exactly 4 uppercase letters');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(officeEmail)) {
+      setSaveError('Please enter a valid email address');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError(null);
+
+    try {
+      const officialData: UpdateOfficialInfoData = {
+        abbreviation: abbreviation,
+        officeEmail: officeEmail,
+        officePhone: officePhone,
+      };
+
+      const result = await updateOfficialInfo(user.id, officialData);
+
+      if (result.success) {
+        // Refresh user data to show updated information
+        await refetch();
+        await refreshUser();
+        
+        // Show success toast notification
+        notification.success("Official Information Updated!", "Your official information has been updated successfully.");
+        console.log("Official information updated successfully");
+        
+        // Close modal immediately
+        closeModal();
+      } else {
+        setSaveError(result.error || 'Failed to update official information');
+      }
+    } catch (error) {
+      console.error('Error updating official information:', error);
+      setSaveError('An unexpected error occurred');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Show loading state
@@ -137,6 +221,12 @@ export default function UserInfoCard() {
           </div>
           <form className="flex flex-col">
             <div className="px-2 pb-3">
+              {saveError && (
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm dark:bg-red-900/20 dark:border-red-800 dark:text-red-400">
+                  {saveError}
+                </div>
+              )}
+              
               <div>
                 <h5 className="mb-5 text-lg font-medium text-gray-800 dark:text-white/90 lg:mb-6">
                   Official Information
@@ -145,32 +235,59 @@ export default function UserInfoCard() {
                 <div className="grid grid-cols-1 gap-x-6 gap-y-5 lg:grid-cols-2">
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Abbreviation</Label>
-                    <Input type="text" defaultValue={userData?.user_abbreviation || ""} />
+                    <input
+                      type="text"
+                      value={formData.abbreviation}
+                      onChange={(e) => handleInputChange('abbreviation', e.target.value)}
+                      placeholder="ABCD"
+                      maxLength={4}
+                      required
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Division</Label>
-                    <Input type="text" defaultValue={divisionName} />
+                    <input
+                      type="text"
+                      value={divisionName}
+                      disabled
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 text-gray-500 border-gray-300 cursor-not-allowed dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700"
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Office email</Label>
-                    <Input type="text" defaultValue={userData?.office_email || ""} />
+                    <input
+                      type="email"
+                      value={formData.officeEmail}
+                      onChange={(e) => handleInputChange('officeEmail', e.target.value)}
+                      placeholder="user@company.com"
+                      required
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
 
                   <div className="col-span-2 lg:col-span-1">
                     <Label>Office phone</Label>
-                    <Input type="text" defaultValue={userData?.office_phone || ""} />
+                    <input
+                      type="tel"
+                      value={formData.officePhone}
+                      onChange={(e) => handleInputChange('officePhone', e.target.value)}
+                      placeholder="+1 (555) 123-4567"
+                      required
+                      className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    />
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={closeModal}>
+              <Button size="sm" variant="outline" onClick={closeModal} disabled={isSaving}>
                 Close
               </Button>
-              <Button size="sm" onClick={handleSave}>
-                Save Changes
+              <Button size="sm" onClick={handleSave} disabled={isSaving}>
+                {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
           </form>

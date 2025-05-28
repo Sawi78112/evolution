@@ -5,7 +5,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 1,
     user: {
-      image: "/images/user/user-17.jpg",
+      image: "/images/default-avatar.svg",
       name: "Isabella Davis",
       role: "Administrator",
     },
@@ -24,7 +24,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 2,
     user: {
-      image: "/images/user/user-18.jpg",
+      image: "/images/default-avatar.svg",
       name: "Ethan Brown",
       role: "Analyst",
     },
@@ -43,7 +43,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 3,
     user: {
-      image: "/images/user/user-19.jpg",
+      image: "/images/default-avatar.svg",
       name: "Sophia Martinez",
       role: "Investigator",
     },
@@ -62,7 +62,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 4,
     user: {
-      image: "/images/user/user-20.jpg",
+      image: "/images/default-avatar.svg",
       name: "Abram Schleifer",
       role: "Division Manager",
     },
@@ -81,7 +81,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 5,
     user: {
-      image: "/images/user/user-21.jpg",
+      image: "/images/default-avatar.svg",
       name: "Charlotte Anderson",
       role: "Analyst",
     },
@@ -100,7 +100,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 6,
     user: {
-      image: "/images/user/user-22.jpg",
+      image: "/images/default-avatar.svg",
       name: "Liam Wilson",
       role: "Administrator",
     },
@@ -119,7 +119,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 7,
     user: {
-      image: "/images/user/user-23.jpg",
+      image: "/images/default-avatar.svg",
       name: "Olivia Johnson",
       role: "Investigator",
     },
@@ -138,7 +138,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 8,
     user: {
-      image: "/images/user/user-24.jpg",
+      image: "/images/default-avatar.svg",
       name: "Noah Garcia",
       role: "Division Manager",
     },
@@ -157,7 +157,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 9,
     user: {
-      image: "/images/user/user-25.jpg",
+      image: "/images/default-avatar.svg",
       name: "Emma Miller",
       role: "Analyst",
     },
@@ -176,7 +176,7 @@ export const securityData: SecurityEntry[] = [
   {
     id: 10,
     user: {
-      image: "/images/user/user-26.jpg",
+      image: "/images/default-avatar.svg",
       name: "William Davis",
       role: "Administrator",
     },
