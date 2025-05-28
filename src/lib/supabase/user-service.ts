@@ -24,7 +24,7 @@ export interface UpdateAddressInfoData {
 export interface UpdateUserProfileResult {
   success: boolean;
   error?: string;
-  data?: any;
+  data?: unknown;
 }
 
 /**
@@ -122,7 +122,7 @@ export async function updateUserProfile(
     const username = `${profileData.firstName.trim()} ${profileData.lastName.trim()}`;
     
     // Prepare the update data
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       username,
       last_updated_at: new Date().toISOString()
     };

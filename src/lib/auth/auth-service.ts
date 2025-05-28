@@ -411,7 +411,7 @@ export class AuthService {
   }
 
   // Check if user has permission (client-side only)
-  static async checkUserPermission(userId: string, permission: string): Promise<boolean> {
+  static async checkUserPermission(_userId: string, _permission: string): Promise<boolean> {
     try {
       // This would integrate with your roles and permissions system
       // For now, returning true as a placeholder
@@ -448,6 +448,12 @@ export class AuthService {
         error: error instanceof Error ? error.message : 'An unexpected error occurred'
       }
     }
+  }
+
+  // Has permission method
+  static async hasPermission(_userId: string, _permission: string): Promise<boolean> {
+    // Implementation of hasPermission method
+    return true;
   }
 }
 

@@ -32,7 +32,7 @@ function NotificationItem({ type, title, message, duration = 5000, onClose }: Om
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current)
     }
-  }, [duration])
+  }, [duration, onClose])
 
   const getIcon = () => {
     switch (type) {

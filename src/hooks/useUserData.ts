@@ -1,9 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase/client';
 import { useAuth } from '@/context/AuthContext';
-import { getUserAvatar } from '../lib/supabase/user-service';
+import { supabase } from '@/lib/supabase/client';
 
 export interface UserData {
   user_id: string;
@@ -220,7 +219,7 @@ export function useUserData(): UseUserDataReturn {
 // Add avatar functionality to existing hooks
 export function useUserAvatar() {
   const { userData, loading, refetch } = useUserData();
-  const [error, setError] = useState<string | null>(null);
+  const [_error, _setError] = useState<string | null>(null);
 
   // Get avatar URL from userData (users table) or use default
   const avatarUrl = userData?.avatar_url || '/images/default-avatar.svg';
@@ -234,7 +233,7 @@ export function useUserAvatar() {
   return {
     avatarUrl,
     loading,
-    error,
+    error: _error,
     refreshAvatar
   };
 } 

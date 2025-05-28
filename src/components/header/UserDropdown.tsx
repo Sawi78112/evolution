@@ -1,6 +1,5 @@
 "use client";
 import React, { useState } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { useNotification } from "@/components/ui/notification";
@@ -11,7 +10,7 @@ import { useUserDisplay, useUserAvatar } from "../../hooks/useUserData";
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const { signOut, user } = useAuth();
+  const { signOut } = useAuth();
   const router = useRouter();
   const notification = useNotification();
   const { displayInfo } = useUserDisplay();

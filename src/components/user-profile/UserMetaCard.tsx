@@ -3,13 +3,11 @@ import React, { useState, useRef, useCallback } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
 import Label from "../form/Label";
-import Image from "next/image";
 import Badge from "../ui/badge/Badge";
 import { uploadAvatar, dataURLtoBlob } from "../../lib/supabase/storage";
 import { useUserData, useUserAvatar } from "../../hooks/useUserData";
-import { updateUserProfile, UpdateUserProfileData, updateUserAvatar } from "../../lib/supabase/user-service";
+import { updateUserProfile, UpdateUserProfileData } from "../../lib/supabase/user-service";
 import { useAuth } from "../../context/AuthContext";
 import { useNotification } from "../ui/notification";
 
@@ -52,7 +50,7 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
   };
 
   // Calculate image display dimensions maintaining aspect ratio
-  const getImageDimensions = () => {
+  const getImageDimensions = useCallback(() => {
     if (!imageNaturalSize.width || !imageNaturalSize.height) {
       return { width: containerSize, height: containerSize };
     }
@@ -84,7 +82,7 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
     }
 
     return { width, height };
-  };
+  }, [imageNaturalSize.width, imageNaturalSize.height, zoom, containerSize]);
 
   // Calculate movement limits to prevent blank spaces
   const getMovementLimits = useCallback(() => {
@@ -99,7 +97,7 @@ const PhotoEditModal: React.FC<PhotoEditModalProps> = ({ isOpen, onClose, imageU
       minY: -maxY,
       maxY: maxY
     };
-  }, [zoom, imageNaturalSize, containerSize]);
+  }, [getImageDimensions, containerSize]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);

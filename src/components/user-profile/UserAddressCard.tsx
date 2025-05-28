@@ -1,9 +1,8 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useModal } from "../../hooks/useModal";
 import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
-import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import { useUserData } from "../../hooks/useUserData";
 import { updateAddressInfo, UpdateAddressInfoData } from "../../lib/supabase/user-service";
@@ -25,17 +24,30 @@ export default function UserAddressCard() {
     location: ''
   });
 
+  // Helper functions to get display values
+  const getHomeEmail = useCallback(() => {
+    return userData?.home_email?.[0] || "Not Set";
+  }, [userData?.home_email]);
+
+  const getHomePhone = useCallback(() => {
+    return userData?.home_phone?.[0] || "Not Set";
+  }, [userData?.home_phone]);
+
+  const getLocation = useCallback(() => {
+    return userData?.location || "Not Set";
+  }, [userData?.location]);
+
   // Initialize form data when modal opens
   React.useEffect(() => {
     if (isOpen && userData) {
       setFormData({
         homeEmail: getHomeEmail() === "Not Set" ? '' : getHomeEmail(),
         homePhone: getHomePhone() === "Not Set" ? '' : getHomePhone(),
-        location: getLocation() === "Not Set" ? '' : getLocation()
+        location: getLocation() === "Not Set" ? '' : getLocation(),
       });
       setSaveError(null);
     }
-  }, [isOpen, userData]);
+  }, [isOpen, userData, getHomeEmail, getHomePhone, getLocation]);
 
   const handleInputChange = (field: keyof typeof formData, value: string) => {
     setFormData(prev => ({
@@ -115,19 +127,6 @@ export default function UserAddressCard() {
       </div>
     );
   }
-
-  // Helper functions to get display values
-  const getHomeEmail = () => {
-    return userData?.home_email?.[0] || "Not Set";
-  };
-
-  const getHomePhone = () => {
-    return userData?.home_phone?.[0] || "Not Set";
-  };
-
-  const getLocation = () => {
-    return userData?.location || "Not Set";
-  };
 
   return (
     <>

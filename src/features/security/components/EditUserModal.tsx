@@ -6,8 +6,6 @@ import { ChevronDownIcon, CheckLineIcon, EyeIcon, EyeCloseIcon, SearchIcon } fro
 import { RoleType, StatusType } from '../types';
 import { roleConfig, statusConfig } from '../constants';
 import Button from '@/components/ui/button/Button';
-import Input from '@/components/form/input/InputField';
-import Label from '@/components/form/Label';
 
 interface EditUserModalProps {
   isOpen: boolean;
