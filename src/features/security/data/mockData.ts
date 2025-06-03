@@ -1,5 +1,96 @@
 import { SecurityEntry } from '../types';
 
+// Division data type
+export interface Division {
+  id: number;
+  name: string;
+  abbreviation: string;
+  manager: {
+    name: string;
+    abbreviation: string;
+    image: string;
+  };
+  createdBy: {
+    name: string;
+    abbreviation: string;
+  };
+  createdAt: string;
+  totalUsers: number;
+  status: 'Active' | 'Inactive';
+}
+
+// Mock data for divisions
+export const divisionsData: Division[] = [
+  {
+    id: 1,
+    name: "Alpha Division",
+    abbreviation: "ALPH",
+    manager: {
+      name: "Maria Pulera",
+      abbreviation: "MAPL",
+      image: "/images/user/user-01.jpg"
+    },
+    createdBy: {
+      name: "Admin: Alice",
+      abbreviation: "ADMN"
+    },
+    createdAt: "2025-05-20 10:31",
+    totalUsers: 12,
+    status: 'Active'
+  },
+  {
+    id: 2,
+    name: "Beta Division",
+    abbreviation: "BETA",
+    manager: {
+      name: "John Smith",
+      abbreviation: "JOSH",
+      image: "/images/user/user-02.jpg"
+    },
+    createdBy: {
+      name: "Admin: Bob",
+      abbreviation: "ADBO"
+    },
+    createdAt: "2025-04-15 14:22",
+    totalUsers: 8,
+    status: 'Active'
+  },
+  {
+    id: 3,
+    name: "Gamma Division",
+    abbreviation: "GAMM",
+    manager: {
+      name: "Sarah Johnson",
+      abbreviation: "SAJO",
+      image: "/images/user/user-03.jpg"
+    },
+    createdBy: {
+      name: "Admin: Carol",
+      abbreviation: "ADCA"
+    },
+    createdAt: "2025-03-10 09:45",
+    totalUsers: 15,
+    status: 'Active'
+  },
+  {
+    id: 4,
+    name: "Delta Division",
+    abbreviation: "DELT",
+    manager: {
+      name: "Mike Wilson",
+      abbreviation: "MIWI",
+      image: "/images/user/user-04.jpg"
+    },
+    createdBy: {
+      name: "Admin: David",
+      abbreviation: "ADDA"
+    },
+    createdAt: "2025-02-28 16:10",
+    totalUsers: 6,
+    status: 'Inactive'
+  }
+];
+
 // Sample security data
 export const securityData: SecurityEntry[] = [
   {
@@ -61,7 +152,7 @@ export const securityData: SecurityEntry[] = [
     user: {
       image: "/images/default-avatar.svg",
       name: "Abram Schleifer",
-      role: "Division Manager",
+      role: "Divisional Manager",
     },
     abbreviation: "PWCH",
     action: "Password Change",
@@ -72,7 +163,7 @@ export const securityData: SecurityEntry[] = [
     },
     lastLoginIn: "2025-05-19 10:15:22",
     status: "Active",
-    roles: ["Division Manager"],
+    roles: ["Divisional Manager"],
   },
   {
     id: 5,
@@ -133,7 +224,7 @@ export const securityData: SecurityEntry[] = [
     user: {
       image: "/images/default-avatar.svg",
       name: "Noah Garcia",
-      role: "Division Manager",
+      role: "Divisional Manager",
     },
     abbreviation: "SYCF",
     action: "System Configuration",
@@ -144,7 +235,7 @@ export const securityData: SecurityEntry[] = [
     },
     lastLoginIn: "2025-05-15 08:30:45",
     status: "Active",
-    roles: ["Division Manager", "System Support"],
+    roles: ["Divisional Manager", "System Support"],
   },
   {
     id: 9,

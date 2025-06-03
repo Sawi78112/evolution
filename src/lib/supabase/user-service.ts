@@ -170,7 +170,7 @@ export async function updateUserProfile(
 }
 
 /**
- * Update official information in the database
+ * Update office information in the database
  */
 export async function updateOfficialInfo(
   userId: string, 

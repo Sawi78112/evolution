@@ -64,6 +64,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('🔐 Auth state change:', event, !!session)
+        
         if (event === 'SIGNED_IN') {
           // For sign in, get user immediately but profile in background
           setState(prev => ({
@@ -81,15 +83,56 @@ export function AuthProvider({ children }: AuthProviderProps) {
               user,
               profile
             }))
+          }).catch(error => {
+            console.warn('Failed to get user profile:', error)
           })
         } else if (event === 'TOKEN_REFRESHED') {
           // For token refresh, just update session
+          console.log('🔄 Token refreshed successfully')
           setState(prev => ({
             ...prev,
             session,
             loading: false
           }))
         } else if (event === 'SIGNED_OUT') {
+          console.log('👋 User signed out')
+          setState({
+            user: null,
+            profile: null,
+            session: null,
+            loading: false,
+            error: null
+          })
+        } else if (event === 'USER_UPDATED') {
+          console.log('👤 User updated')
+          setState(prev => ({
+            ...prev,
+            user: session?.user || null,
+            session
+          }))
+        }
+      }
+    )
+
+    // Add periodic session check to prevent unexpected logouts
+    const sessionCheckInterval = setInterval(async () => {
+      try {
+        const { data: { session }, error } = await supabase.auth.getSession()
+        if (error) {
+          console.error('Session check error:', error)
+          // Don't automatically sign out on network errors
+          if (!error.message.includes('Failed to fetch')) {
+            console.log('🚨 Session invalid, signing out')
+            setState({
+              user: null,
+              profile: null,
+              session: null,
+              loading: false,
+              error: null
+            })
+          }
+        } else if (!session && state.user) {
+          console.log('🚨 No session found, user should be signed out')
           setState({
             user: null,
             profile: null,
@@ -98,10 +141,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
             error: null
           })
         }
+      } catch (error) {
+        console.warn('Session check failed:', error)
+        // Don't sign out on network errors
       }
-    )
+    }, 60000) // Check every minute instead of every 5 minutes
 
-    return () => subscription.unsubscribe()
+    return () => {
+      subscription.unsubscribe()
+      clearInterval(sessionCheckInterval)
+    }
   }, [refreshUser])
 
   const signIn = useCallback(async (email: string, password: string) => {

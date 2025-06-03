@@ -1,6 +1,6 @@
 import React from 'react';
 import { SearchIcon, UserPlusIcon } from '@/assets/icons';
-import { itemsPerPageOptions } from '../constants';
+import { itemsPerPageOptions } from '../../constants';
 
 interface SearchAndFiltersProps {
   itemsPerPage: number;

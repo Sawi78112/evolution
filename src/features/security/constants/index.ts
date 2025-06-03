@@ -1,22 +1,33 @@
 import { RoleType, StatusType, RoleConfig, StatusConfig } from '../types';
 
-// Role configuration including colors and abbreviations
-export const roleConfig: Record<RoleType, RoleConfig> = {
+// Role color mappings and configurations
+export const ROLE_COLORS = {
   "Administrator": { color: "bg-blue-500", abbr: "A" },
-  "Division Manager": { color: "bg-green-500", abbr: "M" },
+  "Divisional Manager": { color: "bg-green-500", abbr: "M" },
   "Analyst": { color: "bg-purple-500", abbr: "N" },
-  "Investigator": { color: "bg-amber-500", abbr: "V" },
-  "System Support": { color: "bg-rose-500", abbr: "S" },
-};
+  "Investigator": { color: "bg-orange-500", abbr: "I" },
+  "System Support": { color: "bg-gray-500", abbr: "S" },
+} as const;
 
-// Available role options for dropdown
-export const roleOptions: RoleType[] = [
+// Role priority for sorting (higher number = higher priority)
+export const ROLE_PRIORITY = [
   "Administrator",
-  "Division Manager",
-  "Analyst",
+  "Divisional Manager",
+  "Analyst", 
   "Investigator",
-  "System Support",
-];
+  "System Support"
+] as const;
+
+// Role counts for statistics (example data)
+export const ROLE_COUNTS = {
+  "Active Users": 24,
+  "Inactive Users": 3,
+  "Administrators": 2,
+  "Divisional Manager": 1,
+  "Analysts": 8,
+  "Investigators": 12,
+  "System Support": 4
+} as const;
 
 // Status configuration with proper badge colors
 export const statusConfig: Record<StatusType, StatusConfig> = {
@@ -47,7 +58,7 @@ export const itemsPerPageOptions = [5, 10, 15, 20];
 // Role order mapping for sorting
 export const roleOrderMap: Record<RoleType, number> = {
   "Administrator": 0,
-  "Division Manager": 1,
+  "Divisional Manager": 1,
   "Analyst": 2,
   "Investigator": 3,
   "System Support": 4

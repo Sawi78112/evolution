@@ -26,7 +26,7 @@ export default function AdminLayout({
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen xl:flex">
+      <div className="min-h-screen xxl:flex">
         {/* Sidebar and Backdrop */}
         <AppSidebar />
         <Backdrop />

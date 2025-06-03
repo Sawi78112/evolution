@@ -34,7 +34,7 @@ export function useSecurityTable() {
   useEffect(() => {
     const initialRoles: Record<number, RoleType[]> = {};
     securityData.forEach(item => {
-      const roles = item.roles.length > 0 ? [...item.roles] : ["Division Manager" as RoleType];
+      const roles = item.roles.length > 0 ? [...item.roles] : ["Divisional Manager" as RoleType];
       initialRoles[item.id] = sortRoles(roles);
     });
     setSelectedRoles(initialRoles);
@@ -96,7 +96,7 @@ export function useSecurityTable() {
       
       if (role === "Administrator") {
         if (currentRoles.includes("Administrator")) {
-          newRoles = ["Division Manager"];
+          newRoles = ["Divisional Manager"];
         } else {
           newRoles = ["Administrator"];
         }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerSupabaseClient } from '@/lib/supabase/server'
+import { createServerSupabaseClient, createServiceSupabaseClient } from '@/lib/supabase/server'
+import { assignDefaultRole } from '@/lib/auth/role-service'
 
 export async function POST(request: NextRequest) {
   try {
@@ -166,97 +167,44 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Now create the user profile in the database
+    // Now wait for the trigger to create the user profile and assign default role
     try {
-      // Get or create a default division (using 'Alpha' as default)
-      let defaultDivisionId = divisionId;
+      // Use service client for role assignment
+      const serviceClient = createServiceSupabaseClient()
       
-      if (!defaultDivisionId) {
-        // Try to find an existing division first
-        const { data: existingDivision } = await supabase
-          .from('divisions')
-          .select('division_id')
-          .eq('name', 'Alpha')
-          .single()
-
-        if (existingDivision) {
-          defaultDivisionId = existingDivision.division_id;
-        } else {
-          // Create a default division if none exists
-          const { data: newDivision, error: divisionError } = await supabase
-            .from('divisions')
-            .insert({
-              name: 'Alpha',
-              code: 'ALPHA',
-              region: 'Default'
-            })
-            .select('division_id')
-            .single()
-
-          if (divisionError) {
-            console.error('Error creating default division:', divisionError)
-            // Continue without division for now
-            defaultDivisionId = null;
-          } else {
-            defaultDivisionId = newDivision.division_id;
-          }
-        }
-      }
-
-      // Create user profile in the database
-      const userProfileData = {
-        user_id: authData.user.id,
-        username: username,
-        user_abbreviation: abbreviation,
-        password_hash: 'supabase_auth', // Placeholder since we use Supabase Auth
-        office_email: email,
-        office_phone: officePhone,
-        user_status: 'Active' as const,
-        two_factor_enabled: true,
-        audit_trail_ids: [],
-        ...(defaultDivisionId && { division_id: defaultDivisionId }),
-        ...(managerId && { manager_user_id: managerId })
-      }
-
-      const { data: userProfile, error: profileError } = await supabase
+      // Wait a moment for the trigger to create the user profile
+      // Then assign the default "Investigator" role
+      console.log('Waiting for user profile to be created by trigger...')
+      
+      // Small delay to ensure trigger completes
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // Verify the user profile was created by the trigger
+      const { data: userProfile, error: profileCheckError } = await serviceClient
         .from('users')
-        .insert(userProfileData)
-        .select()
+        .select('user_id, username')
+        .eq('user_id', authData.user.id)
         .single()
 
-      if (profileError) {
-        console.error('Error creating user profile:', profileError)
-        // Don't fail the signup if profile creation fails, but log it
-        console.log('User auth created but profile creation failed. User can still sign in.')
+      if (profileCheckError || !userProfile) {
+        console.error('User profile not found after trigger execution:', profileCheckError)
+        console.log('User auth created but profile creation by trigger failed. Role assignment skipped.')
       } else {
-        console.log('User profile created successfully:', userProfile)
+        console.log('User profile created successfully by trigger:', userProfile)
 
         // Assign default "Investigator" role to the user
-        const investigatorRoleId = 'eda74b0a-4ed4-481c-b7e3-3db501957c34'; // Investigator role UUID
+        const roleResult = await assignDefaultRole(authData.user.id)
         
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({
-            user_id: authData.user.id,
-            role_id: investigatorRoleId,
-            is_active: true
-          })
-
-        if (roleError) {
-          console.error('Error assigning default role:', roleError)
-          // Don't fail the signup if role assignment fails, but log it
+        if (!roleResult.success) {
+          console.error('Failed to assign default role:', roleResult.error)
           console.log('User created but role assignment failed. Role can be assigned later.')
         } else {
           console.log('Default Investigator role assigned successfully')
         }
-
-        // Note: Avatar URL will be stored in users.avatar_url field when user uploads an avatar
-        // No need to create separate user_avatars record during signup
       }
     } catch (dbError) {
       console.error('Database operation error:', dbError)
-      // Don't fail the signup if database operations fail
-      console.log('User auth created but database profile creation failed. User can still sign in.')
+      console.log('User auth created but role assignment failed. Role can be assigned later.')
     }
 
     console.log('✅ User created successfully!')

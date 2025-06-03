@@ -1,6 +1,6 @@
 // Table Component Types
 
-export type RoleType = "Administrator" | "Division Manager" | "Analyst" | "Investigator" | "System Support";
+export type RoleType = "Administrator" | "Divisional Manager" | "Analyst" | "Investigator" | "System Support";
 
 export type StatusType = "Active" | "Inactive" | "Transferred" | "Canceled";
 

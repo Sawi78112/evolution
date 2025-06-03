@@ -2,20 +2,22 @@
 
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import Image from 'next/image';
 import { ChevronDownIcon, CheckLineIcon, EyeIcon, EyeCloseIcon, SearchIcon } from '@/assets/icons';
-import { RoleType, StatusType } from '../types';
-import { roleConfig, statusConfig } from '../constants';
+import { RoleType, StatusType } from '../../types';
+import { ROLE_COLORS, statusConfig } from '../../constants';
 import Button from '@/components/ui/button/Button';
-import Input from '@/components/form/input/InputField';
-import Label from '@/components/form/Label';
+import { useDivisionsList } from '../../hooks/useDivisionsList';
 
-interface AddUserModalProps {
+interface EditUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (userData: UserFormData) => void;
+  userData: UserFormData | null;
 }
 
 export interface UserFormData {
+  id?: number;
   username: string;
   abbreviation: string;
   roles: RoleType[];
@@ -52,7 +54,9 @@ const generatePassword = () => {
   return password;
 };
 
-export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
+export function EditUserModal({ isOpen, onClose, onSubmit, userData }: EditUserModalProps) {
+  const { divisions: divisionsData, getManagerByDivisionName, getDivisionNames } = useDivisionsList();
+
   const [formData, setFormData] = useState<UserFormData>({
     username: '',
     abbreviation: '',
@@ -64,21 +68,20 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     homePhone: '',
     homeAddress: '',
     status: 'Active',
-    passwordType: 'system',
+    passwordType: 'admin',
     password: '',
   });
 
+  const [originalData, setOriginalData] = useState<UserFormData | null>(null);
   const [generatedPassword, setGeneratedPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [searchQueries, setSearchQueries] = useState({
     division: '',
-    manager: '',
   });
   const [dropdownStates, setDropdownStates] = useState({
     roles: false,
     division: false,
-    manager: false,
     status: false,
   });
 
@@ -87,14 +90,37 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     setMounted(true);
   }, []);
 
-  // Generate password when modal opens or password type changes to system
+  // Pre-fill form with user data when modal opens
   useEffect(() => {
-    if (isOpen && formData.passwordType === 'system') {
+    if (isOpen && userData) {
+      const initialData: UserFormData = {
+        id: userData.id,
+        username: userData.username || '',
+        abbreviation: userData.abbreviation || '',
+        roles: userData.roles || [],
+        division: userData.division || '',
+        managerId: userData.managerId || '',
+        email: userData.email || '',
+        officePhone: userData.officePhone || '',
+        homePhone: userData.homePhone || '',
+        homeAddress: userData.homeAddress || '',
+        status: userData.status || 'Active',
+        passwordType: 'admin' as const,
+        password: '',
+      };
+      setFormData(initialData);
+      setOriginalData(initialData);
+    }
+  }, [isOpen, userData]);
+
+  // Generate password when password type changes to system
+  useEffect(() => {
+    if (formData.passwordType === 'system') {
       const password = generatePassword();
       setGeneratedPassword(password);
       setFormData(prev => ({ ...prev, password }));
     }
-  }, [isOpen, formData.passwordType]);
+  }, [formData.passwordType]);
 
   // Prevent body scroll when modal is open
   useEffect(() => {
@@ -111,32 +137,37 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
   if (!isOpen || !mounted) return null;
 
-  // Check if all required fields are filled
-  const areRequiredFieldsFilled = () => {
-    const requiredFields = {
-      username: formData.username.trim(),
-      abbreviation: formData.abbreviation.trim(),
-      roles: formData.roles.length > 0,
-      division: formData.division,
-      managerId: formData.managerId,
-      email: formData.email.trim(),
-      officePhone: formData.officePhone.trim(),
-      status: formData.status,
-    };
-
-    // Check password based on type
-    const passwordValid = formData.passwordType === 'system' 
-      ? generatedPassword.length > 0 
-      : (formData.password || '').trim().length > 0;
-
-    return Object.values(requiredFields).every(field => !!field) && passwordValid;
+  // Check if form has been modified
+  const hasFormChanged = () => {
+    if (!originalData) return false;
+    
+    // Compare all fields except password (password is optional)
+    const fieldsToCompare: (keyof UserFormData)[] = [
+      'username', 'abbreviation', 'roles', 'division', 'managerId', 
+      'email', 'officePhone', 'homePhone', 'homeAddress', 'status'
+    ];
+    
+    return fieldsToCompare.some(field => {
+      if (field === 'roles') {
+        // Special comparison for roles array
+        const original = originalData[field] || [];
+        const current = formData[field] || [];
+        return JSON.stringify(original.sort()) !== JSON.stringify(current.sort());
+      }
+      return originalData[field] !== formData[field];
+    }) || (formData.passwordType === 'admin' && formData.password !== '') || 
+       (formData.passwordType === 'system' && generatedPassword !== '');
   };
 
   const handleInputChange = (field: keyof UserFormData, value: string | string[] | RoleType[] | StatusType) => {
-    if (field === 'passwordType' && value === 'system') {
-      const password = generatePassword();
-      setGeneratedPassword(password);
-      setFormData(prev => ({ ...prev, [field]: value, password }));
+    if (field === 'division' && typeof value === 'string') {
+      // When division changes, automatically set the manager
+      const manager = getManagerByDivisionName(value);
+      setFormData(prev => ({ 
+        ...prev, 
+        division: value,
+        managerId: manager ? manager.id : ''
+      }));
     } else {
       setFormData(prev => ({ ...prev, [field]: value }));
     }
@@ -170,124 +201,106 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     }));
   };
 
-  const filteredDivisions = divisions.filter(division =>
+  const filteredDivisions = getDivisionNames().filter(division =>
     division.toLowerCase().includes(searchQueries.division.toLowerCase())
   );
 
-  const filteredManagers = managers.filter(manager =>
-    `${manager.name} - ${manager.abbreviation}`.toLowerCase()
-      .includes(searchQueries.manager.toLowerCase())
-  );
+  // Get the selected manager info for display based on the selected division
+  const selectedManagerFromDivision = formData.division ? getManagerByDivisionName(formData.division) : null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Double-check validation before submitting
-    if (!areRequiredFieldsFilled()) {
-      return;
+    // Only include password in submission if it was actually changed
+    let submitData = { ...formData };
+    
+    // If password wasn't changed, don't include it in the update
+    if (formData.passwordType === 'admin' && formData.password === '') {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, passwordType, ...dataWithoutPassword } = submitData;
+      submitData = dataWithoutPassword as UserFormData;
+    } else if (formData.passwordType === 'system' && generatedPassword === '') {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { password, passwordType, ...dataWithoutPassword } = submitData;
+      submitData = dataWithoutPassword as UserFormData;
     }
     
-    onSubmit(formData);
+    onSubmit(submitData);
     onClose();
-    // Reset form
-    setFormData({
-      username: '',
-      abbreviation: '',
-      roles: [],
-      division: '',
-      managerId: '',
-      email: '',
-      officePhone: '',
-      homePhone: '',
-      homeAddress: '',
-      status: 'Active',
-      passwordType: 'system',
-      password: '',
-    });
-    setGeneratedPassword('');
   };
 
-  const handleAddUser = () => {
-    if (!areRequiredFieldsFilled()) {
-      return;
+  const handleCancel = () => {
+    onClose();
+    // Reset form to original data
+    if (originalData) {
+      setFormData(originalData);
+      setGeneratedPassword('');
     }
-    
-    onSubmit(formData);
-    onClose();
-    // Reset form
-    setFormData({
-      username: '',
-      abbreviation: '',
-      roles: [],
-      division: '',
-      managerId: '',
-      email: '',
-      officePhone: '',
-      homePhone: '',
-      homeAddress: '',
-      status: 'Active',
-      passwordType: 'system',
-      password: '',
-    });
-    setGeneratedPassword('');
   };
-
-  const selectedManager = managers.find(m => m.id === formData.managerId);
 
   const modalContent = (
     <div 
-        className="fixed inset-0 z-[9999] bg-black bg-opacity-10 backdrop-blur-[2px] flex items-center justify-center p-4" 
-        style={{ 
-          position: 'fixed', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          bottom: 0,
-          margin: 0,
-          padding: '1rem',
-          zIndex: 99999,
-          backgroundColor: 'rgba(0, 0, 0, 0.15)'
-        }}
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
-      >
-        <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
-          <div className="px-2 pr-14">
-            <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-              Add New User
-            </h4>
-            <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-              Create a new user account with the required information.
-            </p>
-          </div>
+      className="fixed inset-0 z-[9999] bg-black bg-opacity-10 backdrop-blur-[2px] flex items-center justify-center p-4" 
+      style={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        right: 0, 
+        bottom: 0,
+        margin: 0,
+        padding: '1rem',
+        zIndex: 99999,
+        backgroundColor: 'rgba(0, 0, 0, 0.15)'
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      }}
+    >
+      <div className="no-scrollbar relative w-full max-w-[700px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
+        <div className="px-2 pr-14">
+          <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
+            Edit User
+          </h4>
+          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
+            Update user information and settings.
+          </p>
+        </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col">
-            <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
-              <div className="space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-col">
+          <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
+            <div className="space-y-6">
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Username */}
                 <div>
-                  <Label>Username <span className="text-red-500">*</span></Label>
-                  <Input
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Username <span className="text-red-500">*</span>
+                  </label>
+                  <input
                     type="text"
-                    placeholder="Enter username"
-                    defaultValue={formData.username}
+                    required
+                    value={formData.username}
                     onChange={(e) => handleInputChange('username', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="Enter username"
                   />
                 </div>
 
                 {/* Abbreviation */}
                 <div>
-                  <Label>Abbreviation <span className="text-red-500">*</span></Label>
-                  <Input
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Abbreviation <span className="text-red-500">*</span>
+                  </label>
+                  <input
                     type="text"
-                    placeholder="ABCD"
-                    defaultValue={formData.abbreviation}
+                    required
+                    value={formData.abbreviation}
                     onChange={(e) => handleInputChange('abbreviation', e.target.value.toUpperCase())}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    placeholder="ABCD"
+                    maxLength={4}
                   />
                 </div>
               </div>
@@ -309,10 +322,10 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                           {formData.roles.slice(0, 3).map((role, index) => (
                             <div 
                               key={index} 
-                              className={`flex items-center justify-center h-8 w-8 rounded-full text-white font-medium text-xs ${roleConfig[role].color} border-2 border-white dark:border-gray-800`}
+                              className={`flex items-center justify-center h-8 w-8 rounded-full text-white font-medium text-xs ${ROLE_COLORS[role].color} border-2 border-white dark:border-gray-800`}
                               title={role}
                             >
-                              {roleConfig[role].abbr}
+                              {ROLE_COLORS[role].abbr}
                             </div>
                           ))}
                           {formData.roles.length > 3 && (
@@ -351,8 +364,8 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                               <CheckLineIcon className="w-4 h-4 text-white" />
                             )}
                           </div>
-                          <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${roleConfig["Administrator"].color} mr-2`}>
-                            {roleConfig["Administrator"].abbr}
+                          <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS["Administrator"].color} mr-2`}>
+                            {ROLE_COLORS["Administrator"].abbr}
                           </div>
                           <span className="text-sm text-gray-700 dark:text-gray-300">Administrator</span>
                           {formData.roles.includes("Administrator") && (
@@ -361,7 +374,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                         </div>
                         
                         {/* Other roles in specified order */}
-                        {["Division Manager", "Analyst", "Investigator", "System Support"].map((role) => {
+                        {["Divisional Manager", "Analyst", "Investigator", "System Support"].map((role) => {
                           const isSelected = formData.roles.includes(role as RoleType);
                           return (
                             <div
@@ -383,8 +396,8 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                                   <CheckLineIcon className="w-4 h-4 text-white" />
                                 )}
                               </div>
-                              <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${roleConfig[role as RoleType].color} mr-2`}>
-                                {roleConfig[role as RoleType].abbr}
+                              <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS[role as RoleType].color} mr-2`}>
+                                {ROLE_COLORS[role as RoleType].abbr}
                               </div>
                               <span className="text-sm text-gray-700 dark:text-gray-300">{role}</span>
                               {isSelected && (
@@ -457,53 +470,19 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                 {/* Manager */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Manager <span className="text-red-500">*</span>
+                    Manager <span className="text-gray-500">(Auto-selected from Division)</span>
                   </label>
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => toggleDropdown('manager')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 flex items-center justify-between"
+                      disabled={true}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 dark:bg-gray-600 dark:border-gray-600 flex items-center justify-between cursor-not-allowed opacity-75"
                     >
-                      <span className="text-gray-700 dark:text-gray-300">
-                        {selectedManager ? `${selectedManager.name} - ${selectedManager.abbreviation}` : 'Select manager'}
+                      <span className="text-gray-500 dark:text-gray-400">
+                        {selectedManagerFromDivision ? `${selectedManagerFromDivision.name} - ${selectedManagerFromDivision.abbreviation}` : 'Select division first'}
                       </span>
-                      <ChevronDownIcon className="w-4 h-4 text-gray-500" />
+                      <ChevronDownIcon className="w-4 h-4 text-gray-400" />
                     </button>
-
-                    {dropdownStates.manager && (
-                      <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
-                        {/* Search */}
-                        <div className="p-3 border-b border-gray-200 dark:border-gray-600">
-                          <div className="relative">
-                            <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                            <input
-                              type="text"
-                              placeholder="Search managers..."
-                              value={searchQueries.manager}
-                              onChange={(e) => setSearchQueries(prev => ({ ...prev, manager: e.target.value }))}
-                              className="w-full pl-10 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
-                            />
-                          </div>
-                        </div>
-                        {/* Options */}
-                        <div className="max-h-40 overflow-y-auto">
-                          {filteredManagers.map((manager) => (
-                            <div
-                              key={manager.id}
-                              onClick={() => {
-                                handleInputChange('managerId', manager.id);
-                                toggleDropdown('manager');
-                                setSearchQueries(prev => ({ ...prev, manager: '' }));
-                              }}
-                              className="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-600 cursor-pointer text-gray-700 dark:text-gray-300"
-                            >
-                              {manager.name} - {manager.abbreviation}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </div>
@@ -514,34 +493,45 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Email */}
                   <div>
-                    <Label>Email Address <span className="text-red-500">*</span></Label>
-                    <Input
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Email Address <span className="text-red-500">*</span>
+                    </label>
+                    <input
                       type="email"
-                      placeholder="user@company.com"
-                      defaultValue={formData.email}
+                      required
+                      value={formData.email}
                       onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      placeholder="user@company.com"
                     />
                   </div>
 
                   {/* Office Phone */}
                   <div>
-                    <Label>Office Phone <span className="text-red-500">*</span></Label>
-                    <Input
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Office Phone <span className="text-red-500">*</span>
+                    </label>
+                    <input
                       type="tel"
-                      placeholder="+1 (555) 123-4567"
-                      defaultValue={formData.officePhone}
+                      required
+                      value={formData.officePhone}
                       onChange={(e) => handleInputChange('officePhone', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      placeholder="+1 (555) 123-4567"
                     />
                   </div>
 
                   {/* Home Phone */}
                   <div>
-                    <Label>Home Phone <span className="text-gray-500">(Optional)</span></Label>
-                    <Input
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Home Phone <span className="text-gray-500">(Optional)</span>
+                    </label>
+                    <input
                       type="tel"
-                      placeholder="+1 (555) 123-4567"
-                      defaultValue={formData.homePhone}
+                      value={formData.homePhone}
                       onChange={(e) => handleInputChange('homePhone', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                      placeholder="+1 (555) 123-4567"
                     />
                   </div>
 
@@ -582,12 +572,14 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
                 {/* Home Address */}
                 <div className="mt-6">
-                  <Label>Home Address <span className="text-gray-500">(Optional)</span></Label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Home Address <span className="text-gray-500">(Optional)</span>
+                  </label>
                   <textarea
                     value={formData.homeAddress}
                     onChange={(e) => handleInputChange('homeAddress', e.target.value)}
                     rows={3}
-                    className="h-11 w-full rounded-lg border appearance-none px-4 py-2.5 text-sm shadow-evolution-xs placeholder:text-gray-400 focus:outline-hidden focus:ring-3 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800 bg-transparent text-gray-800 border-gray-300 focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                     placeholder="Enter home address"
                   />
                 </div>
@@ -595,7 +587,10 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
               {/* Password Setup */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-4">Password Setup</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">Password Setup</h3>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                  <span className="text-gray-500">(Optional)</span> Only change if you want to update the user&apos;s password
+                </p>
                 <div className="space-y-4">
                   {/* Password Type */}
                   <div className="flex space-x-4">
@@ -625,15 +620,19 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
 
                   {/* Password Display */}
                   <div>
-                    <Label>Password <span className="text-red-500">*</span></Label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Password <span className="text-gray-500">(Optional)</span>
+                    </label>
                     <div className="relative">
-                      <Input
+                      <input
                         type={showPassword ? 'text' : 'password'}
-                        defaultValue={formData.passwordType === 'system' ? generatedPassword : formData.password}
+                        value={formData.passwordType === 'system' ? generatedPassword : formData.password}
                         onChange={(e) => formData.passwordType === 'admin' && handleInputChange('password', e.target.value)}
-                        disabled={formData.passwordType === 'system'}
-                        placeholder={formData.passwordType === 'system' ? 'System generated password' : 'Enter password'}
-                        className="pr-10"
+                        readOnly={formData.passwordType === 'system'}
+                        className={`w-full px-3 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white ${
+                          formData.passwordType === 'system' ? 'bg-gray-50 dark:bg-gray-600' : ''
+                        }`}
+                        placeholder={formData.passwordType === 'system' ? 'System generated password' : 'Enter new password'}
                       />
                       <button
                         type="button"
@@ -655,45 +654,26 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                   </div>
                 </div>
               </div>
-              </div>
             </div>
-            <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-              <Button size="sm" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={() => {
-                  setFormData({
-                    username: '',
-                    abbreviation: '',
-                    roles: [],
-                    division: '',
-                    managerId: '',
-                    email: '',
-                    officePhone: '',
-                    homePhone: '',
-                    homeAddress: '',
-                    status: 'Active',
-                    passwordType: 'system',
-                    password: '',
-                  });
-                  setGeneratedPassword('');
-                }}
-              >
-                Clear
-              </Button>
-              <Button 
-                size="sm" 
-                disabled={!areRequiredFieldsFilled()}
-                onClick={handleAddUser}
-              >
-                Add User
-              </Button>
-            </div>
-          </form>
-        </div>
+          </div>
+
+          <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
+            <Button size="sm" variant="outline" onClick={handleCancel}>
+              Cancel
+            </Button>
+            <Button 
+              size="sm" 
+              disabled={!hasFormChanged()}
+              onClick={() => {
+                const e = { preventDefault: () => {} } as React.FormEvent;
+                handleSubmit(e);
+              }}
+            >
+              Update User
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 
