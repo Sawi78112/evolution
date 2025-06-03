@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evolution 1.0 - User Guide</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 40px;
+            color: #333;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 5px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2980b9;
+            margin-top: 25px;
+        }
+        h4 {
+            color: #7f8c8d;
+            margin-top: 20px;
+        }
+        .table-of-contents {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+        }
+        .table-of-contents ol {
+            margin: 0;
+            padding-left: 20px;
+        }
+        .role-section {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+        }
+        .admin-section {
+            border-left-color: #e74c3c;
+        }
+        .manager-section {
+            border-left-color: #f39c12;
+        }
+        .analyst-section {
+            border-left-color: #27ae60;
+        }
+        .investigator-section {
+            border-left-color: #9b59b6;
+        }
+        .support-section {
+            border-left-color: #16a085;
+        }
+        ul, ol {
+            padding-left: 25px;
+        }
+        li {
+            margin: 5px 0;
+        }
+        strong {
+            color: #2c3e50;
+        }
+        .highlight {
+            background-color: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .separator {
+            border-top: 2px solid #ecf0f1;
+            margin: 30px 0;
+        }
+        .troubleshooting-item {
+            background-color: #fff3cd;
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ffc107;
+        }
+        .tip-box {
+            background-color: #d1ecf1;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #17a2b8;
+        }
+    </style>
+</head>
+<body>
+    <h1>Evolution 1.0 - User Guide</h1>
+
+    <div class="table-of-contents">
+        <h2>Table of Contents</h2>
+        <ol>
+            <li><a href="#getting-started">Getting Started</a></li>
+            <li><a href="#user-roles-permissions">User Roles & Permissions</a></li>
+            <li><a href="#navigation-interface">Navigation & Interface</a></li>
+            <li><a href="#profile-management">Profile Management</a></li>
+            <li><a href="#security-management">Security Management</a></li>
+            <li><a href="#division-management">Division Management</a></li>
+            <li><a href="#common-tasks">Common Tasks</a></li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+        </ol>
+    </div>
+
+    <div class="separator"></div>
+
+    <h2 id="getting-started">Getting Started</h2>
+
+    <h3>What is Evolution 1.0?</h3>
+    <p>Evolution 1.0 is a comprehensive security management system designed to help organizations manage users, divisions, and access controls efficiently. The system provides role-based security to ensure users only access features appropriate to their position.</p>
+
+    <h3>Accessing the System</h3>
+    <ol>
+        <li>Open your web browser</li>
+        <li>Navigate to the Evolution 1.0 URL provided by your administrator</li>
+        <li>Enter your credentials on the login screen</li>
+        <li>Click "Sign In" to access the dashboard</li>
+    </ol>
+
+    <h3>First Time Login</h3>
+    <ul>
+        <li>Your administrator will provide your initial login credentials</li>
+        <li>You may be prompted to change your password on first login</li>
+        <li>Complete your profile information for full system access</li>
+    </ul>
+
+    <div class="separator"></div>
+
+    <h2 id="user-roles-permissions">User Roles & Permissions</h2>
+
+    <p>Evolution 1.0 uses a five-tier role-based access control system:</p>
+
+    <div class="role-section admin-section">
+        <h3>👑 Administrator</h3>
+        <p><strong>Highest level access with full system control</strong></p>
+        <ul>
+            <li>Manage all users across all divisions</li>
+            <li>Create, edit, and delete divisions</li>
+            <li>Assign any role to any user</li>
+            <li>Access all system features and data</li>
+            <li>Manage system-wide settings</li>
+        </ul>
+    </div>
+
+    <div class="role-section manager-section">
+        <h3>🏢 Divisional Manager</h3>
+        <p><strong>Manages users within their assigned division</strong></p>
+        <ul>
+            <li>View and manage users in their division only</li>
+            <li>Create new users in their division</li>
+            <li>Assign roles: Analyst, Investigator, System Support</li>
+            <li>Cannot manage other divisions or administrators</li>
+            <li>Can update division information they manage</li>
+        </ul>
+    </div>
+
+    <div class="role-section analyst-section">
+        <h3>📊 Analyst</h3>
+        <p><strong>Standard user with basic access</strong></p>
+        <ul>
+            <li>View data relevant to their division</li>
+            <li>Update their own profile information</li>
+            <li>Cannot manage other users</li>
+        </ul>
+    </div>
+
+    <div class="role-section investigator-section">
+        <h3>🔍 Investigator</h3>
+        <p><strong>Specialized user role</strong></p>
+        <ul>
+            <li>View data relevant to their division</li>
+            <li>Update their own profile information</li>
+            <li>Cannot manage other users</li>
+        </ul>
+    </div>
+
+    <div class="role-section support-section">
+        <h3>🛠️ System Support</h3>
+        <p><strong>Technical support role</strong></p>
+        <ul>
+            <li>View data relevant to their division</li>
+            <li>Update their own profile information</li>
+            <li>Cannot manage other users</li>
+        </ul>
+    </div>
+
+    <div class="separator"></div>
+
+    <h2 id="navigation-interface">Navigation & Interface</h2>
+
+    <h3>Main Dashboard</h3>
+    <p>After logging in, you'll see the main dashboard with:</p>
+    <ul>
+        <li><strong>Navigation Menu</strong>: Access different sections based on your role</li>
+        <li><strong>Profile Area</strong>: Your user information and avatar</li>
+        <li><strong>System Information</strong>: Basic system status</li>
+    </ul>
+
+    <h3>Navigation Menu</h3>
+    <p>The left sidebar contains:</p>
+    <ul>
+        <li><strong>Dashboard</strong>: Main overview screen</li>
+        <li><strong>Security</strong>: User and role management (Admin/Divisional Manager only)</li>
+        <li><strong>Profile</strong>: Your personal profile settings</li>
+    </ul>
+
+    <h3>Dark/Light Mode</h3>
+    <p>Toggle between dark and light themes using the theme switcher in the top navigation.</p>
+
+    <div class="separator"></div>
+
+    <h2 id="profile-management">Profile Management</h2>
+
+    <h3>Accessing Your Profile</h3>
+    <ol>
+        <li>Click on your profile avatar or name in the top right</li>
+        <li>Select "Edit Profile" from the dropdown menu</li>
+    </ol>
+
+    <h3>Personal Information</h3>
+    <p>Update your basic details:</p>
+    <ul>
+        <li><strong>First Name</strong>: Your given name</li>
+        <li><strong>Last Name</strong>: Your family name</li>
+        <li><strong>Profile Photo</strong>: Upload a custom avatar image</li>
+    </ul>
+
+    <h4>Uploading Profile Photo</h4>
+    <ol>
+        <li>Click on your current avatar image</li>
+        <li>Select "Change image" or click the camera icon</li>
+        <li>Choose an image file (JPG, PNG, GIF)</li>
+        <li>Use the editing tools to:
+            <ul>
+                <li><strong>Move</strong>: Drag the image to reposition</li>
+                <li><strong>Zoom</strong>: Use the zoom slider to resize</li>
+                <li><strong>Rotate</strong>: Use the rotation slider to adjust angle</li>
+            </ul>
+        </li>
+        <li>Click "Save photo" to apply changes</li>
+    </ol>
+
+    <h3>Social Media Links</h3>
+    <p>Add your professional social media profiles:</p>
+    <ul>
+        <li><strong>LinkedIn</strong>: Your LinkedIn profile URL</li>
+        <li><strong>Twitter/X</strong>: Your Twitter profile URL</li>
+        <li><strong>Facebook</strong>: Your Facebook profile URL</li>
+        <li><strong>Instagram</strong>: Your Instagram profile URL</li>
+    </ul>
+
+    <h3>Contact Information</h3>
+    <p>Manage your contact details:</p>
+    <ul>
+        <li><strong>Office Email</strong>: Your work email address</li>
+        <li><strong>Office Phone</strong>: Your work phone number</li>
+        <li><strong>Home Email</strong>: Personal email (optional)</li>
+        <li><strong>Home Phone</strong>: Personal phone (optional)</li>
+        <li><strong>Location</strong>: Your work location or address</li>
+    </ul>
+
+    <div class="separator"></div>
+
+    <h2 id="security-management">Security Management</h2>
+
+    <p>The Security page is the central hub for user and organizational management. Available features depend on your assigned role.</p>
+
+    <div class="separator"></div>
+
+    <div class="role-section admin-section">
+        <h3>👑 Administrator Features</h3>
+        <p><strong>Full System Access - Complete Control Over All Users and Divisions</strong></p>
+
+        <h4>User Management Dashboard</h4>
+        <ul>
+            <li><strong>View All Users</strong>: Access complete user database across all divisions</li>
+            <li><strong>Search Users</strong>: Search by name, abbreviation, email, or other attributes</li>
+            <li><strong>Filter System</strong>:
+                <ul>
+                    <li>Filter by Status (Active, Inactive, Transferred, Canceled)</li>
+                    <li>Filter by Role (Administrator, Divisional Manager, Analyst, Investigator, System Support)</li>
+                    <li>Filter by Division</li>
+                    <li>Filter by Manager assignment</li>
+                </ul>
+            </li>
+            <li><strong>Sort Options</strong>: Sort by various criteria (name, division, status, etc.)</li>
+            <li><strong>Pagination</strong>: Navigate through large user lists</li>
+        </ul>
+
+        <h4>User Creation & Management</h4>
+        <ul>
+            <li><strong>Add New Users</strong>: Create users with any role combination</li>
+            <li><strong>Edit User Information</strong>: Update user details, roles, and assignments</li>
+            <li><strong>Role Assignment</strong>: Assign multiple roles to users</li>
+            <li><strong>Division Assignment</strong>: Assign users to specific divisions</li>
+            <li><strong>Status Management</strong>: Change user status (Active, Inactive, Transferred, Canceled)</li>
+            <li><strong>Delete Users</strong>: Remove users from the system</li>
+        </ul>
+
+        <h4>Division Management</h4>
+        <ul>
+            <li><strong>View All Divisions</strong>: Access complete division database</li>
+            <li><strong>Create New Divisions</strong>: Set up organizational units</li>
+            <li><strong>Edit Divisions</strong>: Update division name, abbreviation, and manager</li>
+            <li><strong>Manager Assignment</strong>: Assign or change divisional managers</li>
+            <li><strong>User Count Tracking</strong>: View real-time user count per division</li>
+        </ul>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="role-section manager-section">
+        <h3>🏢 Divisional Manager Features</h3>
+        <p><strong>Division-Focused Management - Control Over Assigned Division Only</strong></p>
+
+        <h4>My Division Dashboard</h4>
+        <ul>
+            <li><strong>Division User List</strong>: View only users assigned to your division</li>
+            <li><strong>Search Team Members</strong>: Find specific users in your division</li>
+            <li><strong>Filter Division Users</strong>: Filter by role, status within your division</li>
+            <li><strong>Division Statistics</strong>: View your division's user count and metrics</li>
+        </ul>
+
+        <h4>User Management (Division-Scoped)</h4>
+        <ul>
+            <li><strong>Add Team Members</strong>: Create new users within your division</li>
+            <li><strong>Edit Team Information</strong>: Update user details for division members</li>
+            <li><strong>Assign Standard Roles</strong>: Grant Analyst, Investigator, or System Support roles</li>
+            <li><strong>Status Management</strong>: Change user status for division members</li>
+            <li><strong>Role Management</strong>: Modify roles for users in your division</li>
+        </ul>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="role-section analyst-section">
+        <h3>📊 Analyst Features</h3>
+        <p><strong>Personal Profile Management - Self-Service Only</strong></p>
+
+        <h4>Personal Dashboard</h4>
+        <ul>
+            <li><strong>My Profile</strong>: View and edit your personal information</li>
+            <li><strong>Role Information</strong>: See your current role assignments</li>
+            <li><strong>Division Details</strong>: View information about your assigned division</li>
+        </ul>
+
+        <h4>Profile Management</h4>
+        <ul>
+            <li><strong>Personal Information</strong>: Update name, contact details, and profile photo</li>
+            <li><strong>Social Media Links</strong>: Manage professional social media profiles</li>
+            <li><strong>Avatar Upload</strong>: Upload and edit profile picture with built-in editor</li>
+        </ul>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="role-section investigator-section">
+        <h3>🔍 Investigator Features</h3>
+        <p><strong>Personal Profile Management - Self-Service Only</strong></p>
+
+        <h4>Personal Dashboard</h4>
+        <ul>
+            <li><strong>My Profile</strong>: View and edit your personal information</li>
+            <li><strong>Role Information</strong>: See your current role assignments</li>
+            <li><strong>Division Details</strong>: View information about your assigned division</li>
+        </ul>
+
+        <h4>Profile Management</h4>
+        <ul>
+            <li><strong>Personal Information</strong>: Update name, contact details, and profile photo</li>
+            <li><strong>Social Media Links</strong>: Manage professional social media profiles</li>
+            <li><strong>Avatar Upload</strong>: Upload and edit profile picture with built-in editor</li>
+        </ul>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="role-section support-section">
+        <h3>🛠️ System Support Features</h3>
+        <p><strong>Personal Profile Management - Self-Service Only</strong></p>
+
+        <h4>Personal Dashboard</h4>
+        <ul>
+            <li><strong>My Profile</strong>: View and edit your personal information</li>
+            <li><strong>Role Information</strong>: See your current role assignments</li>
+            <li><strong>Division Details</strong>: View information about your assigned division</li>
+        </ul>
+
+        <h4>Profile Management</h4>
+        <ul>
+            <li><strong>Personal Information</strong>: Update name, contact details, and profile photo</li>
+            <li><strong>Social Media Links</strong>: Manage professional social media profiles</li>
+            <li><strong>Avatar Upload</strong>: Upload and edit profile picture with built-in editor</li>
+        </ul>
+    </div>
+
+    <div class="separator"></div>
+
+    <h2>Common Security Page Features (All Roles)</h2>
+
+    <h3>User Interface Elements</h3>
+    <ul>
+        <li><strong>Role Badges</strong>: Visual indicators showing user roles with color coding</li>
+        <li><strong>Status Indicators</strong>: Clear visual status for user accounts (Active, Inactive, Transferred, Canceled)</li>
+        <li><strong>Action Buttons</strong>: Role-appropriate action buttons (edit, view, delete, etc.)</li>
+        <li><strong>Search Bar</strong>: Real-time search functionality</li>
+        <li><strong>Filter Dropdowns</strong>: Easy filtering by status, role, and division</li>
+        <li><strong>Sorting Options</strong>: Click column headers to sort data</li>
+        <li><strong>Pagination Controls</strong>: Navigate through multiple pages of data</li>
+    </ul>
+
+    <h3>Data Display</h3>
+    <ul>
+        <li><strong>User Tables</strong>: Comprehensive user information display</li>
+        <li><strong>Division Tables</strong>: Division information with user counts</li>
+        <li><strong>Real-time Updates</strong>: Data refreshes automatically</li>
+        <li><strong>Responsive Design</strong>: Works on desktop and mobile devices</li>
+    </ul>
+
+    <div class="separator"></div>
+
+    <h2 id="division-management">Division Management</h2>
+
+    <p><em>Available to Administrators only</em></p>
+
+    <h3>Viewing Divisions</h3>
+    <ol>
+        <li>Navigate to "Security" → "Divisions" tab</li>
+        <li>View all divisions with:
+            <ul>
+                <li>Division names and abbreviations</li>
+                <li>Assigned managers</li>
+                <li>Real-time user count in each division</li>
+                <li>Creation dates</li>
+            </ul>
+        </li>
+    </ol>
+
+    <h3>Adding New Divisions</h3>
+    <ol>
+        <li>Click "Add Division"</li>
+        <li>Enter required information:
+            <ul>
+                <li><strong>Division Name</strong>: Full name of the division</li>
+                <li><strong>Abbreviation</strong>: Short identifier (4 letters max)</li>
+                <li><strong>Manager</strong>: Assign a Divisional Manager (optional)</li>
+            </ul>
+        </li>
+        <li>Click "Add Division" to create</li>
+    </ol>
+
+    <h3>Editing Divisions</h3>
+    <ol>
+        <li>Click the edit icon next to a division</li>
+        <li>Modify name, abbreviation, or manager</li>
+        <li>Save changes</li>
+    </ol>
+
+    <h3>Manager Assignment</h3>
+    <ul>
+        <li>Only users with "Divisional Manager" role can be assigned as division managers</li>
+        <li>Each division can have one manager</li>
+        <li>Managers can only manage users in their assigned division</li>
+    </ul>
+
+    <div class="separator"></div>
+
+    <h2 id="common-tasks">Common Tasks</h2>
+
+    <h3>For All Users</h3>
+
+    <h4>Updating Your Profile</h4>
+    <ol>
+        <li>Click your avatar → "Edit Profile"</li>
+        <li>Update information as needed</li>
+        <li>Click "Save Changes"</li>
+    </ol>
+
+    <h4>Changing Your Avatar</h4>
+    <ol>
+        <li>Go to Profile → Click current avatar</li>
+        <li>Upload new image</li>
+        <li>Adjust position and size using the editor</li>
+        <li>Save changes</li>
+    </ol>
+
+    <h4>Logging Out</h4>
+    <ol>
+        <li>Click your avatar in the top right</li>
+        <li>Select "Logout" from the dropdown</li>
+    </ol>
+
+    <h3>For Divisional Managers</h3>
+
+    <h4>Adding Team Members</h4>
+    <ol>
+        <li>Go to Security → Users</li>
+        <li>Click "Add User"</li>
+        <li>Fill in user details</li>
+        <li>Assign to your division</li>
+        <li>Set appropriate roles</li>
+        <li>Save the new user</li>
+    </ol>
+
+    <h4>Managing Your Division Users</h4>
+    <ol>
+        <li>Use division filter to show only your users</li>
+        <li>Edit user roles and information as needed</li>
+        <li>Monitor user status</li>
+    </ol>
+
+    <h3>For Administrators</h3>
+
+    <h4>Setting Up New Divisions</h4>
+    <ol>
+        <li>Create the division first (Security → Divisions)</li>
+        <li>Assign a Divisional Manager</li>
+        <li>Add users to the new division</li>
+        <li>Configure roles and permissions</li>
+    </ol>
+
+    <h4>User Management</h4>
+    <ol>
+        <li>Monitor all user activity across divisions</li>
+        <li>Manage role assignments system-wide</li>
+        <li>Handle user transfers between divisions</li>
+        <li>Maintain system security standards</li>
+    </ol>
+
+    <div class="separator"></div>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <div class="troubleshooting-item">
+        <h3>Login Issues</h3>
+        <p><strong>Problem</strong>: Cannot log in</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+            <li>Verify username and password</li>
+            <li>Check caps lock is off</li>
+            <li>Contact your administrator for password reset</li>
+            <li>Ensure browser cookies are enabled</li>
+        </ul>
+    </div>
+
+    <div class="troubleshooting-item">
+        <h3>Profile Photo Upload Issues</h3>
+        <p><strong>Problem</strong>: Photo won't upload</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+            <li>Check file size (keep under 5MB)</li>
+            <li>Use supported formats: JPG, PNG, GIF</li>
+            <li>Clear browser cache and try again</li>
+            <li>Try a different browser</li>
+        </ul>
+    </div>
+
+    <div class="troubleshooting-item">
+        <h3>Permission Errors</h3>
+        <p><strong>Problem</strong>: "Access Denied" messages</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+            <li>Verify your role has the required permissions</li>
+            <li>Contact your administrator if you need additional access</li>
+            <li>Log out and log back in to refresh permissions</li>
+        </ul>
+    </div>
+
+    <div class="troubleshooting-item">
+        <h3>Search Not Working</h3>
+        <p><strong>Problem</strong>: Cannot find users/divisions</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+            <li>Clear all filters and try again</li>
+            <li>Check spelling in search terms</li>
+            <li>Verify the user/division exists</li>
+            <li>Refresh the page</li>
+        </ul>
+    </div>
+
+    <div class="troubleshooting-item">
+        <h3>Page Loading Issues</h3>
+        <p><strong>Problem</strong>: Pages won't load or show errors</p>
+        <p><strong>Solutions:</strong></p>
+        <ul>
+            <li>Refresh the browser page</li>
+            <li>Clear browser cache and cookies</li>
+            <li>Try incognito/private browsing mode</li>
+            <li>Contact system support if issues persist</li>
+        </ul>
+    </div>
+
+    <h3>Need Help?</h3>
+    <ul>
+        <li>Contact your system administrator</li>
+        <li>Submit a support request through your organization's help desk</li>
+        <li>Email support team with specific error messages</li>
+    </ul>
+
+    <div class="separator"></div>
+
+    <h2>Tips for Success</h2>
+
+    <div class="tip-box">
+        <h3>Security Best Practices</h3>
+        <ul>
+            <li>Keep your login credentials secure</li>
+            <li>Log out when finished using the system</li>
+            <li>Report suspicious activity to administrators</li>
+            <li>Regularly update your profile information</li>
+        </ul>
+    </div>
+
+    <div class="tip-box">
+        <h3>Efficient Workflow</h3>
+        <ul>
+            <li>Use the search function to quickly find users</li>
+            <li>Use filters to narrow down results</li>
+            <li>Bookmark frequently used pages</li>
+            <li>Learn the keyboard shortcuts for faster navigation</li>
+        </ul>
+    </div>
+
+    <div class="tip-box">
+        <h3>Profile Management</h3>
+        <ul>
+            <li>Keep your contact information current</li>
+            <li>Use a professional profile photo</li>
+            <li>Complete all profile sections for better collaboration</li>
+            <li>Review and update information monthly</li>
+        </ul>
+    </div>
+
+    <div class="separator"></div>
+
+    <div class="tip-box">
+        <h2><strong>Need Additional Help?</strong></h2>
+        <p>Contact your system administrator or IT support team for assistance with any features not covered in this guide.</p>
+    </div>
+
+</body>
+</html> 

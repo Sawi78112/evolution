@@ -13,6 +13,34 @@ export type SortDirection = 'asc' | 'desc';
 export function useSecurityTable() {
   const notification = useNotification();
   
+  // Core search and pagination state
+  const [currentParams, setCurrentParams] = useState({
+    page: 1,
+    limit: 10,
+    search: '',
+    status: '',
+    sortField: 'username' as SortField,
+    sortDirection: 'asc' as SortDirection
+  });
+
+  const [searchInput, setSearchInput] = useState('');
+
+  // Use the actual API hook with proper params
+  const { 
+    users, 
+    pagination, 
+    filters, 
+    sorting, 
+    loading, 
+    error, 
+    refetch,
+    goToPage,
+    changeLimit,
+    search,
+    filterByStatus,
+    sort
+  } = useUsersList(currentParams);
+  
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -24,21 +52,6 @@ export function useSecurityTable() {
   const [selectedUserForDelete, setSelectedUserForDelete] = useState<{ id: string; name: string } | null>(null);
   const [selectedUserForTransfer, setSelectedUserForTransfer] = useState<{ id: string; name: string } | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
-  
-  // Filtering and search states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [roleFilter, setRoleFilter] = useState('');
-  const [divisionFilter, setDivisionFilter] = useState('');
-  
-  // Sorting state
-  const [sortField, setSortField] = useState<SortField>('username');
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   
   // Bulk selection
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
@@ -60,56 +73,13 @@ export function useSecurityTable() {
   const [roleDropdownPosition, setRoleDropdownPosition] = useState<'top' | 'bottom'>('bottom');
   const [roleClickCoordinates, setRoleClickCoordinates] = useState({ x: 0, y: 0 });
   
-  // Refs for click outside
-  const statusDropdownRef = useClickOutside(() => setStatusDropdownOpen(false));
-  const roleDropdownRef = useClickOutside(() => setRoleDropdownOpen(false));
-  const divisionDropdownRef = useClickOutside(() => setDivisionDropdownOpen(false));
+  // Refs for click outside handling
   const statusPopoverRef = useClickOutside(() => setOpenStatusPopover(null));
   const rolePopoverRef = useClickOutside(() => setOpenRolePopover(null));
   
-  // Use the users list hook
-  const { users, loading, error, pagination, refetch } = useUsersList({
-    page: currentPage,
-    limit: pageSize,
-    search: searchQuery,
-    status: statusFilter,
-    // TODO: Add role and division filters when API supports them
-  });
-  
-  // Current params for tracking
-  const currentParams = {
-    page: currentPage,
-    limit: pageSize,
-    search: searchQuery,
-    status: statusFilter,
-    role: roleFilter,
-    division: divisionFilter,
-    sortField,
-    sortDirection
-  };
-  
-  // Filters object
-  const filters = {
-    search: searchQuery,
-    status: statusFilter,
-    role: roleFilter,
-    division: divisionFilter
-  };
-  
-  // Sorting object
-  const sorting = {
-    field: sortField,
-    direction: sortDirection
-  };
-  
-  // Filter handlers
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    setCurrentPage(1); // Reset to first page on search
-  };
-  
-  const handleSearchChange = (query: string) => {
-    setSearchInput(query);
+  // Search handlers
+  const handleSearchChange = (value: string) => {
+    setSearchInput(value);
   };
   
   const handleSearchKeyPress = (e: React.KeyboardEvent) => {
@@ -119,60 +89,67 @@ export function useSecurityTable() {
   };
   
   const handleExplicitSearch = () => {
-    setSearchQuery(searchInput);
-    setCurrentPage(1);
+    const newParams = { ...currentParams, search: searchInput.trim(), page: 1 };
+    setCurrentParams(newParams);
+    search(searchInput.trim());
   };
   
+  // Filter handlers
   const handleStatusFilter = (status: string) => {
-    setStatusFilter(status);
-    setCurrentPage(1);
+    const newParams = { ...currentParams, status, page: 1 };
+    setCurrentParams(newParams);
+    filterByStatus(status);
     setStatusDropdownOpen(false);
   };
   
   const handleRoleFilter = (role: string) => {
-    setRoleFilter(role);
-    setCurrentPage(1);
+    // Note: Role filtering would need to be implemented in the API
+    console.log('Role filter not yet implemented:', role);
     setRoleDropdownOpen(false);
   };
   
   const handleDivisionFilter = (division: string) => {
-    setDivisionFilter(division);
-    setCurrentPage(1);
+    // Note: Division filtering would need to be implemented in the API
+    console.log('Division filter not yet implemented:', division);
     setDivisionDropdownOpen(false);
   };
   
   // Clear all filters
   const clearFilters = () => {
-    setSearchQuery('');
     setSearchInput('');
-    setStatusFilter('');
-    setRoleFilter('');
-    setDivisionFilter('');
-    setCurrentPage(1);
+    const newParams = { ...currentParams, search: '', status: '', page: 1 };
+    setCurrentParams(newParams);
+    refetch(newParams);
   };
   
   // Sorting handlers
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortField(field);
-      setSortDirection('asc');
-    }
-  };
-  
   const requestSort = (field: SortField) => {
-    handleSort(field);
+    const newDirection: SortDirection = (currentParams.sortField === field && currentParams.sortDirection === 'asc') 
+      ? 'desc' 
+      : 'asc';
+    
+    const newParams = { 
+      ...currentParams, 
+      sortField: field, 
+      sortDirection: newDirection,
+      page: 1 
+    };
+    
+    setCurrentParams(newParams);
+    sort(field, newDirection);
   };
   
   // Pagination handlers
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    const newParams = { ...currentParams, page };
+    setCurrentParams(newParams);
+    goToPage(page);
   };
   
   const handleItemsPerPageChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setCurrentPage(1);
+    const newParams = { ...currentParams, limit: newPageSize, page: 1 };
+    setCurrentParams(newParams);
+    changeLimit(newPageSize);
   };
   
   // Bulk selection handlers
@@ -197,170 +174,175 @@ export function useSecurityTable() {
     setIsAddModalOpen(false);
   };
   
-  const handleModalSubmit = (userData: UserFormData) => {
-    // Handle form submission
-    refetch();
-  };
-
-  const handleEditModalSubmit = (userData: UserFormData) => {
-    // Handle edit submission
-    refetch();
-  };
-
-  const handleAddUser = () => {
-    setIsAddModalOpen(true);
-  };
-
-  const handleEditUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    
-    if (user) {
-      const userData = {
-        id: user.id,
-        name: user.username
-      };
-      setSelectedUserForEdit(userData);
-      setIsEditModalOpen(true);
-    }
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    
-    if (user) {
-      const deleteData = {
-        id: user.id,
-        name: user.username
-      };
-      setSelectedUserForDelete(deleteData);
-      setIsDeleteModalOpen(true);
-    }
-  };
-
-  const handleTransferUser = (userId: string) => {
-    const user = users.find(u => u.id === userId);
-    
-    if (user) {
-      const transferData = {
-        id: user.id,
-        name: user.username
-      };
-      setSelectedUserForTransfer(transferData);
-      setIsTransferModalOpen(true);
-    }
-  };
-
-  // Status change handler
-  const handleStatusChange = async (userId: string, newStatus: StatusType) => {
-    try {
-      // Implement status change logic here
-      console.log(`Changing status for user ${userId} to ${newStatus}`);
-      await refetch();
-    } catch (error) {
-      console.error('Failed to change user status:', error);
-    }
-  };
-
-  // Delete confirmation handler
-  const handleConfirmDelete = async () => {
-    if (!selectedUserForDelete) return;
-    
-    setDeletingUser(true);
-    try {
-      // Implement delete logic here
-      console.log(`Deleting user ${selectedUserForDelete.id}`);
-      await refetch();
-      setIsDeleteModalOpen(false);
-      setSelectedUserForDelete(null);
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-    } finally {
-      setDeletingUser(false);
-    }
-  };
-
-  // Modal close handlers
   const handleEditModalClose = () => {
     setIsEditModalOpen(false);
     setSelectedUserForEdit(null);
   };
-
+  
   const handleDeleteModalClose = () => {
     setIsDeleteModalOpen(false);
     setSelectedUserForDelete(null);
   };
+  
+  const handleModalSubmit = (userData: UserFormData) => {
+    console.log('Adding user:', userData);
+    // Handle form submission
+    setIsAddModalOpen(false);
+  };
+  
+  const handleAddUser = () => {
+    setIsAddModalOpen(true);
+  };
+  
+  const handleEditUser = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUserForEdit({ id: user.id, name: user.username });
+      setIsEditModalOpen(true);
+    }
+  };
+  
+  const handleDeleteUser = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUserForDelete({ id: user.id, name: user.username });
+      setIsDeleteModalOpen(true);
+    }
+  };
 
-  const handleTransferModalClose = () => {
-    setIsTransferModalOpen(false);
-    setSelectedUserForTransfer(null);
+  const handleConfirmDelete = async () => {
+    if (!selectedUserForDelete) return;
+
+    setDeletingUser(true);
+
+    try {
+      const response = await fetch('/api/users', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: selectedUserForDelete.id
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete user');
+      }
+
+      // Refresh the data
+      refetch(currentParams);
+      
+      notification.success(
+        'User Deleted',
+        `"${selectedUserForDelete.name}" has been successfully deleted.`
+      );
+      
+      handleDeleteModalClose();
+    } catch (error) {
+      notification.error(
+        'Delete Failed',
+        error instanceof Error ? error.message : 'Failed to delete user'
+      );
+    } finally {
+      setDeletingUser(false);
+    }
+  };
+  
+  const handleStatusChange = async (userId: string, newStatus: StatusType) => {
+    try {
+      const response = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          status: newStatus
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update status');
+      }
+
+      // Update local state
+      setSelectedStatuses(prev => ({
+        ...prev,
+        [userId]: newStatus
+      }));
+
+      // Refresh the data
+      refetch(currentParams);
+      
+      notification.success(
+        'Status Updated',
+        `User status has been updated to ${newStatus}.`
+      );
+    } catch (error) {
+      notification.error(
+        'Update Failed',
+        error instanceof Error ? error.message : 'Failed to update status'
+      );
+    }
   };
 
   return {
-    // Data
+    // Data from API
     users,
-    loading,
-    error,
     pagination,
     filters,
     sorting,
+    loading,
+    error,
     
-    // Search
+    // Search state
     searchInput,
     currentParams,
     
-    // Handlers
-    requestSort,
-    handleExplicitSearch,
-    handleSearchKeyPress,
+    // Search and filter handlers
     handleSearchChange,
-    handlePageChange,
-    handleItemsPerPageChange,
-    handleAddUser,
-    handleEditUser,
-    handleDeleteUser,
-    handleStatusChange,
-    refetch,
-    
-    // Filters and search
-    searchQuery,
-    statusFilter,
-    roleFilter,
-    divisionFilter,
-    handleSearch,
+    handleSearchKeyPress,
+    handleExplicitSearch,
     handleStatusFilter,
     handleRoleFilter,
     handleDivisionFilter,
     clearFilters,
     
     // Sorting
-    sortField,
-    sortDirection,
-    handleSort,
+    requestSort,
     
     // Pagination
-    currentPage,
+    handlePageChange,
+    handleItemsPerPageChange,
+    
+    // User actions
+    handleAddUser,
+    handleEditUser,
+    handleDeleteUser,
+    handleStatusChange,
+    refetch,
     
     // Selection
     selectedUsers,
     handleSelectAll,
     handleSelectUser,
     
-    // Modals
+    // Modal state
     isAddModalOpen,
-    setIsAddModalOpen,
     isEditModalOpen,
     isDeleteModalOpen,
-    isTransferModalOpen,
     selectedUserForEdit,
     selectedUserForDelete,
-    selectedUserForTransfer,
     deletingUser,
     handleModalClose,
-    handleModalSubmit,
-    handleEditModalSubmit,
     handleEditModalClose,
     handleDeleteModalClose,
-    handleTransferModalClose,
+    handleModalSubmit,
     handleConfirmDelete,
     
     // Status popover state
@@ -383,16 +365,13 @@ export function useSecurityTable() {
     roleClickCoordinates,
     setRoleClickCoordinates,
     rolePopoverRef,
-    
-    // Dropdown states and refs
+
+    // Dropdown states
     statusDropdownOpen,
     setStatusDropdownOpen,
     roleDropdownOpen,
     setRoleDropdownOpen,
     divisionDropdownOpen,
-    setDivisionDropdownOpen,
-    statusDropdownRef,
-    roleDropdownRef,
-    divisionDropdownRef
+    setDivisionDropdownOpen
   };
 } 

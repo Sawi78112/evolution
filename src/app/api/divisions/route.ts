@@ -503,6 +503,38 @@ export async function GET(request: NextRequest) {
         .from('divisions')
         .select('division_id, name, abbreviation, status, created_at, manager_user_id, created_by', { count: 'exact' });
 
+      // Apply search filter if provided
+      if (search) {
+        const searchLower = search.toLowerCase().trim();
+        const isDateSearch = /^\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}$|^\d{4}[\/\-]\d{1,2}[\/\-]\d{1,2}$|^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i.test(searchLower);
+        
+        if (isDateSearch) {
+          // Handle date search
+          const parsedDate = parseSearchDate(searchLower);
+          if (parsedDate.startDate && parsedDate.endDate) {
+            query = query.gte('created_at', parsedDate.startDate.toISOString())
+                        .lte('created_at', parsedDate.endDate.toISOString());
+          }
+        } else {
+          // Text-based search for division name, abbreviation, and status
+          const isStatusSearch = searchLower === 'active' || searchLower === 'inactive';
+          
+          let searchConditions = [
+            `name.ilike.%${search}%`,              // Division Name
+            `abbreviation.ilike.%${search}%`       // Abbreviation
+          ];
+          
+          // Add status search if applicable
+          if (isStatusSearch) {
+            const statusValue = searchLower === 'active' ? 'Active' : 'Inactive';
+            searchConditions.push(`status.eq.${statusValue}`);
+          }
+          
+          // Apply OR conditions for text search
+          query = query.or(searchConditions.join(','));
+        }
+      }
+
       // Apply status filter if provided
       if (statusFilter && (statusFilter === 'Active' || statusFilter === 'Inactive')) {
         query = query.eq('status', statusFilter);

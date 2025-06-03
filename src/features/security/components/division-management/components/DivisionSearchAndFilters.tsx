@@ -43,7 +43,11 @@ export function DivisionSearchAndFilters({
             placeholder="Search divisions..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            onKeyPress={onSearchKeyPress}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                onSearchKeyPress?.(e);
+              }
+            }}
             className="w-full sm:w-64 rounded-lg border border-gray-300 bg-transparent py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
           />
         </div>

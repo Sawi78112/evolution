@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useClickOutside } from '@/hooks/useClickOutside';
 import { useDivisions } from '../../../hooks/useDivisions';
 import { useNotification } from '@/components/ui/notification';
@@ -17,9 +17,23 @@ export function useDivisionTable() {
   });
 
   const [searchInput, setSearchInput] = useState('');
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Hook for divisions data - using the original working API
-  const { divisions, pagination, filters, sorting, loading, error, refetch, goToPage, changeLimit, search, filterByStatus, sort } = useDivisions(currentParams);
+  // Hook for divisions data - using the working API
+  const { 
+    divisions, 
+    pagination, 
+    filters, 
+    sorting, 
+    loading, 
+    error, 
+    refetch, 
+    goToPage, 
+    changeLimit, 
+    search, 
+    filterByStatus, 
+    sort 
+  } = useDivisions(currentParams);
   
   // Notification hook
   const notification = useNotification();
@@ -43,38 +57,128 @@ export function useDivisionTable() {
 
   // Sort handler
   const requestSort = (field: SortField) => {
-    const newDirection = sorting.field === field && sorting.direction === 'asc' ? 'desc' : 'asc';
-    setCurrentParams(prev => ({ ...prev, sortField: field, sortDirection: newDirection, page: 1 }));
+    const newDirection: 'asc' | 'desc' = sorting.field === field && sorting.direction === 'asc' ? 'desc' : 'asc';
+    const newParams = { ...currentParams, sortField: field, sortDirection: newDirection, page: 1 };
+    setCurrentParams(newParams);
     sort(field, newDirection);
+  };
+
+  // Debounced search function
+  const performSearch = (searchTerm: string) => {
+    const newParams = { ...currentParams, search: searchTerm.trim(), page: 1 };
+    setCurrentParams(newParams);
+    search(searchTerm.trim());
   };
 
   // Search handlers
   const handleExplicitSearch = () => {
-    if (searchInput.trim() !== currentParams.search) {
-      setCurrentParams(prev => ({ ...prev, search: searchInput.trim(), page: 1 }));
-      search(searchInput.trim());
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
     }
+    performSearch(searchInput);
   };
 
   const handleSearchKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleExplicitSearch();
     }
   };
 
   const handleSearchChange = (term: string) => {
     setSearchInput(term);
+    
+    // Clear existing timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
+    // If search is cleared, search immediately
+    if (term === '') {
+      performSearch('');
+    } else {
+      // Otherwise, debounce the search by 300ms
+      searchTimeoutRef.current = setTimeout(() => {
+        performSearch(term);
+      }, 300);
+    }
   };
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Pagination handlers
   const handlePageChange = (page: number) => {
-    setCurrentParams(prev => ({ ...prev, page }));
+    const newParams = { ...currentParams, page };
+    setCurrentParams(newParams);
     goToPage(page);
   };
 
   const handleItemsPerPageChange = (items: number) => {
-    setCurrentParams(prev => ({ ...prev, limit: items, page: 1 }));
+    const newParams = { ...currentParams, limit: items, page: 1 };
+    setCurrentParams(newParams);
     changeLimit(items);
+  };
+
+  // Status change handler
+  const handleStatusChange = async (divisionId: string, newStatus: string) => {
+    try {
+      const response = await fetch('/api/divisions', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          divisionId,
+          status: newStatus
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update status');
+      }
+
+      // Update local state
+      setSelectedStatuses(prev => ({
+        ...prev,
+        [divisionId]: newStatus
+      }));
+
+      // Refresh the data
+      refetch();
+      
+      notification.success(
+        'Status Updated',
+        `Division status has been updated to ${newStatus}.`
+      );
+    } catch (error) {
+      notification.error(
+        'Update Failed',
+        error instanceof Error ? error.message : 'Failed to update status'
+      );
+    }
+  };
+
+  // Toggle status popover
+  const toggleStatusPopover = (divisionId: string, e: React.MouseEvent) => {
+    if (openStatusPopover === divisionId) {
+      setOpenStatusPopover(null);
+    } else {
+      const targetElement = e.currentTarget as HTMLElement;
+      const position = calculateDropdownPosition(targetElement, 200);
+      
+      setStatusDropdownPosition(position.direction);
+      setClickCoordinates({ x: position.x, y: position.y });
+      setOpenStatusPopover(divisionId);
+    }
   };
 
   // Modal handlers
@@ -165,67 +269,6 @@ export function useDivisionTable() {
     } finally {
       setDeletingDivision(false);
     }
-  };
-
-  // Status change handler
-  const handleStatusChange = async (divisionId: string, newStatus: 'Active' | 'Inactive') => {
-    // Optimistic update
-    setSelectedStatuses(prev => ({
-      ...prev,
-      [divisionId]: newStatus
-    }));
-    setOpenStatusPopover(null);
-
-    try {
-      const response = await fetch('/api/divisions', {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          divisionId: divisionId,
-          status: newStatus
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update status');
-      }
-
-      refetch();
-      
-      notification.success(
-        'Status Updated',
-        `Division status updated to ${newStatus}`
-      );
-      
-      console.log('Division status updated successfully:', result.message);
-    } catch (error) {
-      // Revert optimistic update on error
-      setSelectedStatuses(prev => {
-        const newState = { ...prev };
-        delete newState[divisionId];
-        return newState;
-      });
-      
-      notification.error(
-        'Update Failed',
-        'Failed to update division status'
-      );
-      
-      console.error('Failed to update division status:', error);
-    }
-  };
-
-  const toggleStatusPopover = (id: string, event: React.MouseEvent) => {
-    const targetElement = event.currentTarget as HTMLElement;
-    const position = calculateDropdownPosition(targetElement, 120);
-    
-    setStatusDropdownPosition(position.direction);
-    setClickCoordinates({ x: position.x, y: position.y });
-    setOpenStatusPopover(openStatusPopover === id ? null : id);
   };
 
   return {
