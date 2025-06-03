@@ -33,6 +33,8 @@ export interface QueryParams {
   limit?: number;
   search?: string;
   status?: string;
+  sortField?: string;
+  sortDirection?: 'asc' | 'desc';
 }
 
 // Universal Table Hook - works with any table
@@ -49,6 +51,10 @@ export const useUniversalTable = (config: TableSearchConfig, params: QueryParams
   const [filters, setFilters] = useState<FiltersData>({
     search: null,
     status: null
+  });
+  const [sorting, setSorting] = useState({
+    field: params.sortField || config.defaultSortField || 'created_at',
+    direction: params.sortDirection || 'desc'
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -141,6 +147,7 @@ export const useUniversalTable = (config: TableSearchConfig, params: QueryParams
     data, 
     pagination,
     filters,
+    sorting,
     loading, 
     error, 
     refetch,

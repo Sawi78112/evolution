@@ -6,7 +6,6 @@ export { EditModal } from './components/EditModal';
 export { DeleteModal } from './components/user-management/DeleteModal';
 export { AddUserModal } from './components/user-management/AddUserModal';
 export { EditUserModal } from './components/user-management/EditUserModal';
-export { TransferUserModal } from './components/user-management/TransferUserModal';
 
 // Division Management Components
 export { default as DivisionTable } from './components/division-management/DivisionTable';

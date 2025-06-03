@@ -120,8 +120,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         const { data: { session }, error } = await supabase.auth.getSession()
         if (error) {
           console.error('Session check error:', error)
-          // Don't automatically sign out on network errors
-          if (!error.message.includes('Failed to fetch')) {
+          // Only sign out for actual auth errors, not network errors
+          if (!error.message.includes('Failed to fetch') && 
+              !error.message.includes('NetworkError') && 
+              !error.message.includes('fetch')) {
             console.log('🚨 Session invalid, signing out')
             setState({
               user: null,
@@ -143,9 +145,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
         }
       } catch (error) {
         console.warn('Session check failed:', error)
-        // Don't sign out on network errors
+        // Don't sign out on network errors - keep user logged in
       }
-    }, 60000) // Check every minute instead of every 5 minutes
+    }, 120000) // Check every 2 minutes instead of 1 minute
 
     return () => {
       subscription.unsubscribe()

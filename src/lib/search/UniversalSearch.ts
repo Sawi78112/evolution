@@ -213,7 +213,14 @@ export class UniversalSearch {
   }
 
   // Main search method
-  async search(searchTerm: string, page: number = 1, limit: number = 10, statusFilter?: string): Promise<{
+  async search(
+    searchTerm: string, 
+    page: number = 1, 
+    limit: number = 10, 
+    statusFilter?: string,
+    sortField?: string,
+    sortDirection?: 'asc' | 'desc'
+  ): Promise<{
     data: any[];
     count: number;
     pagination: {
@@ -223,7 +230,11 @@ export class UniversalSearch {
       limit: number;
       hasNext: boolean;
       hasPrev: boolean;
-    }
+    };
+    sorting: {
+      field: string;
+      direction: string;
+    };
   }> {
     // Build base query with joins
     const selectClause = this.buildSelectClause();
@@ -248,8 +259,11 @@ export class UniversalSearch {
     }
 
     // Add sorting
-    const sortField = this.config.defaultSortField || this.config.primaryKey;
-    query = query.order(sortField, { ascending: true });
+    const finalSortField = sortField || this.config.defaultSortField || this.config.primaryKey;
+    const finalSortDirection = sortDirection || 'desc';
+    const ascending = finalSortDirection === 'asc';
+    
+    query = query.order(finalSortField, { ascending });
 
     // Add pagination
     const offset = (page - 1) * limit;
@@ -278,6 +292,10 @@ export class UniversalSearch {
         limit,
         hasNext,
         hasPrev
+      },
+      sorting: {
+        field: finalSortField,
+        direction: finalSortDirection
       }
     };
   }

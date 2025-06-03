@@ -4,6 +4,7 @@ import './globals.css';
 import { SidebarProvider } from '@/context/SidebarContext';
 import { ThemeProvider } from '@/context/ThemeContext';
 import { AuthProvider } from '@/context/AuthContext';
+import { RoleProvider } from '@/context/RoleContext';
 import { NotificationContainer } from '@/components/ui/notification';
 import type { Metadata } from 'next';
 
@@ -33,8 +34,10 @@ export default function RootLayout({
       <body className={`${outfit.className} dark:bg-gray-900`}>
         <ThemeProvider>
           <AuthProvider>
-            <SidebarProvider>{children}</SidebarProvider>
-            <NotificationContainer />
+            <RoleProvider>
+              <SidebarProvider>{children}</SidebarProvider>
+              <NotificationContainer />
+            </RoleProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

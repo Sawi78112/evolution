@@ -11,11 +11,15 @@ import Input from '@/components/form/input/InputField';
 import Label from '@/components/form/Label';
 import { useDivisionsList } from '../../hooks/useDivisionsList';
 import { useNotification } from '@/components/ui/notification';
+import { useRoleContext } from '@/context/RoleContext';
 
 interface AddUserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (userData: UserFormData) => void;
+  prefilledDivision?: string;
+  prefilledManagerId?: string;
+  disableDivisionFields?: boolean;
 }
 
 export interface UserFormData {
@@ -55,9 +59,10 @@ const generatePassword = () => {
   return password;
 };
 
-export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
+export function AddUserModal({ isOpen, onClose, onSubmit, prefilledDivision, prefilledManagerId, disableDivisionFields }: AddUserModalProps) {
   const { divisions: divisionsData, getManagerByDivisionName, getDivisionNames } = useDivisionsList();
   const notification = useNotification();
+  const { isAdmin } = useRoleContext();
 
   const [formData, setFormData] = useState<UserFormData>({
     username: '',
@@ -102,6 +107,18 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     }
   }, [isOpen, formData.passwordType]);
 
+  // Pre-fill division and manager when modal opens
+  useEffect(() => {
+    if (isOpen && prefilledDivision && disableDivisionFields) {
+      const manager = getManagerByDivisionName(prefilledDivision);
+      setFormData(prev => ({ 
+        ...prev, 
+        division: prefilledDivision,
+        managerId: manager ? manager.id : (prefilledManagerId || '')
+      }));
+    }
+  }, [isOpen, prefilledDivision, prefilledManagerId, disableDivisionFields]);
+
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -116,6 +133,25 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
   }, [isOpen]);
 
   if (!isOpen || !mounted) return null;
+
+  // Helper function to get default form values (preserves prefilled values for Divisional Managers)
+  const getDefaultFormData = (): UserFormData => {
+    const manager = prefilledDivision ? getManagerByDivisionName(prefilledDivision) : null;
+    return {
+      username: '',
+      abbreviation: '',
+      roles: [],
+      division: disableDivisionFields && prefilledDivision ? prefilledDivision : '',
+      managerId: disableDivisionFields && manager ? manager.id : (prefilledManagerId || ''),
+      email: '',
+      officePhone: '',
+      homePhone: '',
+      homeAddress: '',
+      status: 'Active',
+      passwordType: 'system',
+      password: '',
+    };
+  };
 
   // Check if all required fields are filled
   const areRequiredFieldsFilled = () => {
@@ -201,20 +237,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
     onSubmit(formData);
     onClose();
     // Reset form
-    setFormData({
-      username: '',
-      abbreviation: '',
-      roles: [],
-      division: '',
-      managerId: '',
-      email: '',
-      officePhone: '',
-      homePhone: '',
-      homeAddress: '',
-      status: 'Active',
-      passwordType: 'system',
-      password: '',
-    });
+    setFormData(getDefaultFormData());
     setGeneratedPassword('');
   };
 
@@ -261,20 +284,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
       onSubmit(formData);
       
       // Reset form and close modal
-      setFormData({
-        username: '',
-        abbreviation: '',
-        roles: [],
-        division: '',
-        managerId: '',
-        email: '',
-        officePhone: '',
-        homePhone: '',
-        homeAddress: '',
-        status: 'Active',
-        passwordType: 'system',
-        password: '',
-      });
+      setFormData(getDefaultFormData());
       setGeneratedPassword('');
       onClose();
       
@@ -388,68 +398,72 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                   {dropdownStates.roles && (
                     <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-60 overflow-y-auto">
                       <div className="p-2">
-                        {/* Administrator role shown separately */}
-                        <div
-                          key="Administrator"
-                          className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer mb-2 border-b border-gray-200 dark:border-gray-600 pb-2"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleRole("Administrator");
-                          }}
-                        >
+                        {/* Administrator role shown separately - only for Administrators */}
+                        {isAdmin() && (
                           <div
-                            className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
-                              formData.roles.includes("Administrator")
-                                ? 'bg-blue-500 border-blue-500'
-                                : 'border-gray-300 dark:border-gray-500'
-                            }`}
+                            key="Administrator"
+                            className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer mb-2 border-b border-gray-200 dark:border-gray-600 pb-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleRole("Administrator");
+                            }}
                           >
-                            {formData.roles.includes("Administrator") && (
-                              <CheckLineIcon className="w-4 h-4 text-white" />
-                            )}
-                          </div>
-                          <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS["Administrator"].color} mr-2`}>
-                            {ROLE_COLORS["Administrator"].abbr}
-                          </div>
-                          <span className="text-sm text-gray-700 dark:text-gray-300">Administrator</span>
-                          {formData.roles.includes("Administrator") && (
-                            <CheckLineIcon className="ml-auto h-4 w-4 text-green-500" />
-                          )}
-                        </div>
-                        
-                        {/* Other roles in specified order */}
-                        {["Divisional Manager", "Analyst", "Investigator", "System Support"].map((role) => {
-                          const isSelected = formData.roles.includes(role as RoleType);
-                          return (
                             <div
-                              key={role}
-                              className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleRole(role as RoleType);
-                              }}
+                              className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                                formData.roles.includes("Administrator")
+                                  ? 'bg-blue-500 border-blue-500'
+                                  : 'border-gray-300 dark:border-gray-500'
+                              }`}
                             >
-                              <div
-                                className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
-                                  isSelected
-                                    ? 'bg-blue-500 border-blue-500'
-                                    : 'border-gray-300 dark:border-gray-500'
-                                }`}
-                              >
-                                {isSelected && (
-                                  <CheckLineIcon className="w-4 h-4 text-white" />
-                                )}
-                              </div>
-                              <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS[role as RoleType].color} mr-2`}>
-                                {ROLE_COLORS[role as RoleType].abbr}
-                              </div>
-                              <span className="text-sm text-gray-700 dark:text-gray-300">{role}</span>
-                              {isSelected && (
-                                <CheckLineIcon className="ml-auto h-4 w-4 text-green-500" />
+                              {formData.roles.includes("Administrator") && (
+                                <CheckLineIcon className="w-4 h-4 text-white" />
                               )}
                             </div>
-                          );
-                        })}
+                            <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS["Administrator"].color} mr-2`}>
+                              {ROLE_COLORS["Administrator"].abbr}
+                            </div>
+                            <span className="text-sm text-gray-700 dark:text-gray-300">Administrator</span>
+                            {formData.roles.includes("Administrator") && (
+                              <CheckLineIcon className="ml-auto h-4 w-4 text-green-500" />
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Other roles in specified order - filter out Divisional Manager for non-admins */}
+                        {["Divisional Manager", "Analyst", "Investigator", "System Support"]
+                          .filter(role => isAdmin() || role !== "Divisional Manager")
+                          .map((role) => {
+                            const isSelected = formData.roles.includes(role as RoleType);
+                            return (
+                              <div
+                                key={role}
+                                className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleRole(role as RoleType);
+                                }}
+                              >
+                                <div
+                                  className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                                    isSelected
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-gray-300 dark:border-gray-500'
+                                  }`}
+                                >
+                                  {isSelected && (
+                                    <CheckLineIcon className="w-4 h-4 text-white" />
+                                  )}
+                                </div>
+                                <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS[role as RoleType].color} mr-2`}>
+                                  {ROLE_COLORS[role as RoleType].abbr}
+                                </div>
+                                <span className="text-sm text-gray-700 dark:text-gray-300">{role}</span>
+                                {isSelected && (
+                                  <CheckLineIcon className="ml-auto h-4 w-4 text-green-500" />
+                                )}
+                              </div>
+                            );
+                          })}
                       </div>
                     </div>
                   )}
@@ -462,20 +476,28 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Division <span className="text-red-500">*</span>
+                    {disableDivisionFields && (
+                      <span className="text-gray-500 ml-2">(Auto-assigned)</span>
+                    )}
                   </label>
                   <div className="relative">
                     <button
                       type="button"
-                      onClick={() => toggleDropdown('division')}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white dark:bg-gray-700 dark:border-gray-600 flex items-center justify-between"
+                      onClick={() => !disableDivisionFields && toggleDropdown('division')}
+                      disabled={disableDivisionFields}
+                      className={`w-full px-3 py-2 border border-gray-300 rounded-lg flex items-center justify-between ${
+                        disableDivisionFields
+                          ? 'bg-gray-100 dark:bg-gray-600 cursor-not-allowed opacity-75'
+                          : 'bg-white dark:bg-gray-700 dark:border-gray-600'
+                      }`}
                     >
-                      <span className="text-gray-700 dark:text-gray-300">
+                      <span className={disableDivisionFields ? 'text-gray-500 dark:text-gray-400' : 'text-gray-700 dark:text-gray-300'}>
                         {formData.division || 'Select division'}
                       </span>
-                      <ChevronDownIcon className="w-4 h-4 text-gray-500" />
+                      <ChevronDownIcon className={`w-4 h-4 ${disableDivisionFields ? 'text-gray-400' : 'text-gray-500'}`} />
                     </button>
 
-                    {dropdownStates.division && (
+                    {dropdownStates.division && !disableDivisionFields && (
                       <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg">
                         {/* Search */}
                         <div className="p-3 border-b border-gray-200 dark:border-gray-600">
@@ -688,20 +710,7 @@ export function AddUserModal({ isOpen, onClose, onSubmit }: AddUserModalProps) {
                 size="sm" 
                 variant="outline" 
                 onClick={() => {
-                  setFormData({
-                    username: '',
-                    abbreviation: '',
-                    roles: [],
-                    division: '',
-                    managerId: '',
-                    email: '',
-                    officePhone: '',
-                    homePhone: '',
-                    homeAddress: '',
-                    status: 'Active',
-                    passwordType: 'system',
-                    password: '',
-                  });
+                  setFormData(getDefaultFormData());
                   setGeneratedPassword('');
                 }}
               >

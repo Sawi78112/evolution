@@ -39,7 +39,7 @@ export function DivisionMobileCard({
             <p className="text-sm text-gray-600 dark:text-gray-400">{division.abbreviation}</p>
           </div>
         </div>
-        <span className="text-sm text-gray-500 dark:text-gray-400">#{((currentPage - 1) * limit) + index + 1}</span>
+        <span className="text-sm text-gray-500 dark:text-gray-400">#{index + 1}</span>
       </div>
       
       <div className="space-y-2 mb-3">

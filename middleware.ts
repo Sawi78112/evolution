@@ -2,8 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
-  console.log('🚀 MIDDLEWARE TRIGGERED:', request.nextUrl.pathname)
-  
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -43,16 +41,6 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getSession()
 
   const pathname = request.nextUrl.pathname
-  
-  // Debug logging
-  console.log('🔍 Middleware Debug:', {
-    pathname,
-    hasUser: !!user,
-    userEmail: user?.email,
-    hasSession: !!session,
-    searchParams: Object.fromEntries(request.nextUrl.searchParams.entries()),
-    cookies: request.cookies.getAll().map(c => c.name)
-  })
 
   // Check if user is in password reset flow
   // This can happen when they click the reset link from email with type=recovery parameter
@@ -63,7 +51,6 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     url.pathname = '/reset-password/update'
     url.search = '' // Clear the query parameters
-    console.log('🔄 Redirecting recovery link user to password update page')
     return NextResponse.redirect(url)
   }
   
@@ -75,6 +62,50 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
     // If authenticated and not in password reset flow, allow access to root page
+  }
+
+  // Role-based route protection for security page
+  if (pathname.startsWith('/security') && user) {
+    try {
+      // Create a service client to bypass RLS for role checking
+      const serviceClient = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        {
+          cookies: {
+            getAll() {
+              return request.cookies.getAll()
+            },
+            setAll() {
+              // No-op for service client
+            },
+          },
+        }
+      )
+
+      // Get user roles
+      const { data: userRoles, error: rolesError } = await serviceClient
+        .from('user_roles')
+        .select(`roles:role_id (role_name)`)
+        .eq('user_id', user.id);
+
+      if (rolesError) {
+        console.error('❌ Error fetching user roles in middleware:', rolesError);
+        // Allow access but log error - client-side protection will handle it
+      } else {
+        const roles = userRoles?.map(ur => (ur as any).roles?.role_name).filter(Boolean) || [];
+        const canAccessSecurity = roles.includes('Administrator') || roles.includes('Divisional Manager');
+
+        if (!canAccessSecurity) {
+          const url = request.nextUrl.clone()
+          url.pathname = '/alerts'
+          return NextResponse.redirect(url)
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in security route protection:', error);
+      // Continue to allow access - client-side protection will handle it
+    }
   }
 
   // DISABLED: Route protection is now handled by client-side hooks and components

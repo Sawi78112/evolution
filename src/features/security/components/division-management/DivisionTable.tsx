@@ -128,8 +128,8 @@ export default function DivisionTable() {
 
       {/* Desktop Table View (hidden on mobile) */}
       <div className="hidden lg:block">
-        <div className="max-w-full overflow-x-auto custom-scrollbar">
-          <div className="min-w-[1200px]">
+        <div className="max-w-full overflow-x-auto custom-scrollbar overflow-y-visible" style={{ overflowY: 'visible' }}>
+          <div className="min-w-[1200px]" style={{ overflow: 'visible' }}>
             <Table>
               <DivisionTableHeader
                 sortConfig={{

@@ -26,7 +26,7 @@ export function DivisionTableRow({
   return (
     <TableRow key={division.id}>
       <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-        {((currentPage - 1) * limit) + index + 1}
+        {index + 1}
       </TableCell>
       <TableCell className="px-4 py-4 text-start">
         <div className="min-w-0">
@@ -64,7 +64,7 @@ export function DivisionTableRow({
       <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
         <span className="font-medium">{division.totalUsers}</span>
       </TableCell>
-      <TableCell className="px-4 py-4">
+      <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
         <div className="relative" style={{ position: 'static' }}>
           <div 
             className="flex items-center gap-1 cursor-pointer relative"

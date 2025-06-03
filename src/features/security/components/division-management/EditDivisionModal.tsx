@@ -46,10 +46,11 @@ export function EditDivisionModal({ isOpen, onClose, onSubmit, onRefetch, divisi
   const [isDataReady, setIsDataReady] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Initialize form with existing data when modal opens
   useEffect(() => {
-    if (isOpen && divisionData && !loading) {
+    if (isOpen && divisionData && !loading && !hasInitialized) {
       // Find manager ID by matching username and abbreviation from division manager users
       const existingManager = divisionManagers.find(
         manager => manager.username === divisionData.manager?.name && 
@@ -64,12 +65,13 @@ export function EditDivisionModal({ isOpen, onClose, onSubmit, onRefetch, divisi
       
       // Mark data as ready when hook finishes loading (regardless of whether there are available managers)
       setIsDataReady(true);
+      setHasInitialized(true);
     }
-  }, [isOpen, divisionData, divisionManagers, loading]);
+  }, [isOpen, divisionData?.id, loading, hasInitialized]); // Only depend on division ID, not the entire divisionData object
 
   // Fallback to ensure form loads even if there's an error with division managers
   useEffect(() => {
-    if (isOpen && divisionData && error && !isDataReady) {
+    if (isOpen && divisionData && error && !isDataReady && !hasInitialized) {
       console.warn('Division managers failed to load, but allowing form to display:', error);
       setFormData({
         name: divisionData.name,
@@ -77,13 +79,15 @@ export function EditDivisionModal({ isOpen, onClose, onSubmit, onRefetch, divisi
         managerId: '',
       });
       setIsDataReady(true);
+      setHasInitialized(true);
     }
-  }, [isOpen, divisionData, error, isDataReady]);
+  }, [isOpen, divisionData?.id, error, isDataReady, hasInitialized]);
 
   // Reset data ready state when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setIsDataReady(false);
+      setHasInitialized(false);
       setFormData({
         name: '',
         abbreviation: '',

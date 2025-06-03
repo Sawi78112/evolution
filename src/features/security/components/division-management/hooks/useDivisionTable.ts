@@ -4,6 +4,7 @@ import { useDivisions } from '../../../hooks/useDivisions';
 import { useNotification } from '@/components/ui/notification';
 import { SortField } from '../types';
 import { DivisionFormData } from '../AddDivisionModal';
+import { calculateDropdownPosition } from '../../../utils/positioning';
 
 export function useDivisionTable() {
   // Core table state
@@ -17,7 +18,7 @@ export function useDivisionTable() {
 
   const [searchInput, setSearchInput] = useState('');
 
-  // Hook for divisions data
+  // Hook for divisions data - using the original working API
   const { divisions, pagination, filters, sorting, loading, error, refetch, goToPage, changeLimit, search, filterByStatus, sort } = useDivisions(currentParams);
   
   // Notification hook
@@ -220,21 +221,10 @@ export function useDivisionTable() {
 
   const toggleStatusPopover = (id: string, event: React.MouseEvent) => {
     const targetElement = event.currentTarget as HTMLElement;
-    const rect = targetElement.getBoundingClientRect();
-    const viewportHeight = window.innerHeight;
+    const position = calculateDropdownPosition(targetElement, 120);
     
-    // Determine if dropdown should appear above or below
-    const spaceBelow = viewportHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    const dropdownHeight = 120; // Approximate height of dropdown
-    
-    if (spaceBelow < dropdownHeight && spaceAbove > dropdownHeight) {
-      setStatusDropdownPosition('top');
-    } else {
-      setStatusDropdownPosition('bottom');
-    }
-    
-    setClickCoordinates({ x: rect.left, y: rect.top });
+    setStatusDropdownPosition(position.direction);
+    setClickCoordinates({ x: position.x, y: position.y });
     setOpenStatusPopover(openStatusPopover === id ? null : id);
   };
 

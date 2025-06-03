@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState,useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useSidebar } from "../../context/SidebarContext";
 import {
   AlertIcon,
@@ -19,6 +19,7 @@ import {
   ElectronicCommIcon,
   HourglassIcon,
 } from "../../assets/icons/index";
+import { RoleChecker } from "@/components/auth/RoleGuard";
 
 type NavItem = {
   name: string;
@@ -74,20 +75,23 @@ const navItems: NavItem[] = [
     path: "/keywords",
   },
   {
-    icon: <LockIcon />,
-    name: "Security",
-    path: "/security",
-  },
-  {
     icon: <PageIcon />,
     name: "AI Agent Library",
     path: "/ai-agent-library",
   },
 ];
 
+// Security nav item that requires special permissions
+const securityNavItem: NavItem = {
+  icon: <LockIcon />,
+  name: "Security",
+  path: "/security",
+};
+
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered, toggleMobileSidebar } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Handle mobile menu item click - close sidebar on mobile
   const handleMobileMenuClick = useCallback(() => {
@@ -285,6 +289,10 @@ const AppSidebar: React.FC = () => {
     });
   };
 
+  const handleNavigation = (path: string) => {
+    router.push(path);
+  };
+
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
@@ -351,6 +359,34 @@ const AppSidebar: React.FC = () => {
                 )}
               </h2>
               {renderMenuItems(navItems, "main")}
+              
+              {/* Security menu item with role-based access - only for Administrators and Divisional Managers */}
+              <RoleChecker allowedRoles={['Administrator', 'Divisional Manager']}>
+                <ul className="flex flex-col gap-2.5 mt-2.5">
+                  <li>
+                    <Link
+                      href={securityNavItem.path!}
+                      onClick={handleMobileMenuClick}
+                      className={`menu-item group ${
+                        isActive(securityNavItem.path!) ? "menu-item-active" : "menu-item-inactive"
+                      }`}
+                    >
+                      <span
+                        className={`${
+                          isActive(securityNavItem.path!)
+                            ? "menu-item-icon-active"
+                            : "menu-item-icon-inactive"
+                        }`}
+                      >
+                        {securityNavItem.icon}
+                      </span>
+                      {(isExpanded || isHovered || isMobileOpen) && (
+                        <span className={`menu-item-text`}>{securityNavItem.name}</span>
+                      )}
+                    </Link>
+                  </li>
+                </ul>
+              </RoleChecker>
             </div>
           </div>
         </nav>

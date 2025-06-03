@@ -1,13 +1,13 @@
-import { supabase } from './client';
+import { createClient } from '@supabase/supabase-js';
 import { updateUserAvatar } from './user-service';
 
-export interface UploadAvatarOptions {
+interface UploadAvatarParams {
   userId: string;
-  file: File | Blob;
-  fileName?: string;
+  file: Blob;
+  fileName: string;
 }
 
-export interface UploadAvatarResult {
+interface UploadResult {
   success: boolean;
   url?: string;
   error?: string;
@@ -16,113 +16,113 @@ export interface UploadAvatarResult {
 /**
  * Upload user avatar to Supabase storage
  */
-export async function uploadAvatar({ 
-  userId, 
-  file, 
-  fileName 
-}: UploadAvatarOptions): Promise<UploadAvatarResult> {
+export const uploadAvatar = async ({ userId, file, fileName }: UploadAvatarParams): Promise<UploadResult> => {
   try {
-    console.log('🚀 Starting avatar upload for user:', userId);
-    console.log('📁 File details:', {
-      size: file.size,
-      type: file.type || 'unknown'
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return { success: false, error: 'Missing Supabase configuration' };
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
     });
 
-    // Generate unique filename if not provided
-    const timestamp = Date.now();
-    const finalFileName = fileName || `avatar-${userId}-${timestamp}.jpg`;
-    
-    console.log('📝 Uploading file as:', finalFileName);
+    // Ensure unique filename
+    const finalFileName = fileName.includes(userId) ? fileName : `avatar-${userId}-${Date.now()}.jpg`;
 
-    // Upload to Supabase storage (avatar bucket already exists)
+    // Upload file to storage
     const { data, error } = await supabase.storage
       .from('avatar')
       .upload(finalFileName, file, {
         cacheControl: '3600',
-        upsert: true // Replace existing file if it exists
+        upsert: true
       });
 
     if (error) {
-      console.error('❌ Upload error details:', {
-        message: error.message,
-        error: error
-      });
-      return { success: false, error: error.message };
+      return { 
+        success: false, 
+        error: `Upload failed: ${error.message}` 
+      };
     }
 
-    console.log('✅ File uploaded successfully:', data);
-
-    // Generate signed URL with 1 year expiration (365 days * 24 hours * 60 minutes * 60 seconds)
-    const oneYearInSeconds = 365 * 24 * 60 * 60;
+    // Generate signed URL with 1 year expiration
     const { data: signedUrlData, error: signedUrlError } = await supabase.storage
       .from('avatar')
-      .createSignedUrl(finalFileName, oneYearInSeconds);
+      .createSignedUrl(finalFileName, 31536000); // 1 year
 
     if (signedUrlError) {
-      console.error('❌ Signed URL error:', signedUrlError);
-      return { success: false, error: signedUrlError.message };
+      return { success: false, error: `Failed to generate signed URL: ${signedUrlError.message}` };
     }
 
-    console.log('🔗 Signed URL generated (1 year expiration):', signedUrlData.signedUrl);
+    // Update user's avatar_url in the database
+    const updateResult = await supabase
+      .from('users')
+      .update({ avatar_url: signedUrlData.signedUrl })
+      .eq('user_id', userId);
 
-    // Update the users table with the new avatar URL
-    const updateResult = await updateUserAvatar(userId, signedUrlData.signedUrl);
-    
-    if (!updateResult.success) {
-      console.error('❌ Failed to update user avatar URL in database:', updateResult.error);
-      return { success: false, error: `Upload successful but failed to update database: ${updateResult.error}` };
+    if (updateResult.error) {
+      return { success: false, error: `Failed to update user avatar URL: ${updateResult.error.message}` };
     }
-
-    console.log('✅ Avatar URL updated in users table successfully');
 
     return { 
       success: true, 
       url: signedUrlData.signedUrl 
     };
+
   } catch (error) {
-    console.error('❌ Upload exception:', error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
+      error: error instanceof Error ? error.message : 'Unknown upload error' 
     };
   }
-}
+};
 
 /**
  * Delete user avatar from Supabase storage
  */
-export async function deleteAvatar(fileName: string): Promise<boolean> {
+export const deleteAvatar = async (userId: string, fileName: string): Promise<{ success: boolean; error?: string }> => {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return { success: false, error: 'Missing Supabase configuration' };
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
     const { error } = await supabase.storage
       .from('avatar')
       .remove([fileName]);
 
     if (error) {
-      console.error('❌ Delete error:', error);
-      return false;
+      return { success: false, error: error.message };
     }
 
-    console.log('✅ Avatar deleted successfully');
-    return true;
+    return { success: true };
+
   } catch (error) {
-    console.error('❌ Delete exception:', error);
-    return false;
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : 'Unknown delete error' 
+    };
   }
-}
+};
 
 /**
  * Convert base64 data URL to Blob
  */
-export function dataURLtoBlob(dataURL: string): Blob {
+export const dataURLtoBlob = (dataURL: string): Blob => {
   const arr = dataURL.split(',');
-  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
   const bstr = atob(arr[1]);
   let n = bstr.length;
   const u8arr = new Uint8Array(n);
-  
   while (n--) {
     u8arr[n] = bstr.charCodeAt(n);
   }
-  
   return new Blob([u8arr], { type: mime });
-} 
+}; 

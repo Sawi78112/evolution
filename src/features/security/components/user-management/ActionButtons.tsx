@@ -2,10 +2,10 @@ import React from 'react';
 import { PencilIcon, ShootingStarIcon, TrashBinIcon } from '@/assets/icons';
 
 interface ActionButtonsProps {
-  userId: number;
-  onEdit: (userId: number) => void;
-  onTransfer: (userId: number) => void;
-  onRemove: (userId: number) => void;
+  userId: string;
+  onEdit: (userId: string) => void;
+  onTransfer?: (userId: string) => void;
+  onRemove: (userId: string) => void;
 }
 
 export function ActionButtons({ userId, onEdit, onTransfer, onRemove }: ActionButtonsProps) {
@@ -22,7 +22,7 @@ export function ActionButtons({ userId, onEdit, onTransfer, onRemove }: ActionBu
       
       {/* Transfer Button */}
       <button
-        onClick={() => onTransfer(userId)}
+        onClick={() => onTransfer?.(userId)}
         className="flex h-8 w-8 items-center justify-center rounded-md bg-amber-50 text-amber-600 transition-colors hover:bg-amber-100 dark:bg-amber-500/15 dark:text-amber-400 dark:hover:bg-amber-500/25"
         title="Transfer User"
       >

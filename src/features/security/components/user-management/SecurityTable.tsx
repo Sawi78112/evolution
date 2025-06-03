@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -16,14 +16,16 @@ import { SearchAndFilters } from "./SearchAndFilters";
 import { ActionButtons } from "./ActionButtons";
 import { AddUserModal, UserFormData } from "./AddUserModal";
 import { EditUserModal } from "./EditUserModal";
-import { TransferUserModal, TransferFormData } from "./TransferUserModal";
 import { DeleteModal } from "./DeleteModal";
 import { useClickOutside } from "@/hooks/useClickOutside";
-import { useUsersList } from "../../hooks/useUsersList";
+import { useSecurityTable } from "../../hooks/useSecurityTable";
 import { ROLE_COLORS, statusConfig } from '../../constants';
 import { RoleType, StatusType } from '../../types';
 import { sortRoles, calculateDropdownPosition } from '../../utils';
 import { Checkbox } from '@/components/ui/checkbox/Checkbox';
+import { useNotification } from '@/components/ui/notification';
+import { useCurrentUserDivision } from '../../hooks/useCurrentUserDivision';
+import { useRoleContext } from '@/context/RoleContext';
 
 const AVAILABLE_ROLES: RoleType[] = [
   "Administrator",
@@ -33,174 +35,250 @@ const AVAILABLE_ROLES: RoleType[] = [
   "System Support"
 ];
 
+const AVAILABLE_STATUSES: StatusType[] = [
+  "Active",
+  "Transferred", 
+  "Inactive",
+  "Canceled"
+];
+
+// Role order for display: D, A, I, S (Divisional Manager, Analyst, Investigator, System Support)
+const ROLE_DISPLAY_ORDER: RoleType[] = [
+  "Divisional Manager",
+  "Analyst", 
+  "Investigator",
+  "System Support"
+];
+
 export default function SecurityTable() {
-  // Use real data instead of mock data
-  const { users, loading, error, refetch } = useUsersList();
-  
-  // Search and filtering states
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  
-  // Sorting state
-  const [sortConfig, setSortConfig] = useState<{key: string; direction: 'ascending' | 'descending'}>({
-    key: 'username',
-    direction: 'ascending'
-  });
-  
-  // Role and status management states
-  const [openPopover, setOpenPopover] = useState<string | null>(null);
-  const [selectedRoles, setSelectedRoles] = useState<Record<string, string[]>>({});
-  const [dropdownPosition, setDropdownPosition] = useState<'top' | 'bottom'>('bottom');
-  
-  const [openStatusPopover, setOpenStatusPopover] = useState<string | null>(null);
-  const [selectedStatuses, setSelectedStatuses] = useState<Record<string, string>>({});
-  const [statusDropdownPosition, setStatusDropdownPosition] = useState<'top' | 'bottom'>('bottom');
-  const [clickCoordinates, setClickCoordinates] = useState({ x: 0, y: 0 });
-
-  // Filter and sort data
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.abbreviation.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.division.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.roles.some(role => role.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
-  const sortedData = [...filteredUsers].sort((a, b) => {
-    let aValue: any;
-    let bValue: any;
+  // Use the comprehensive security table hook
+  const {
+    // Data
+    users,
+    pagination,
+    filters,
+    sorting,
+    loading,
+    error,
     
-    switch (sortConfig.key) {
-      case 'username':
-        aValue = a.username;
-        bValue = b.username;
-        break;
-      case 'abbreviation':
-        aValue = a.abbreviation;
-        bValue = b.abbreviation;
-        break;
-      case 'division':
-        aValue = a.division;
-        bValue = b.division;
-        break;
-      case 'manager':
-        aValue = a.manager;
-        bValue = b.manager;
-        break;
-      case 'status':
-        aValue = a.status;
-        bValue = b.status;
-        break;
-      case 'lastLogin':
-        aValue = a.lastLogin || '';
-        bValue = b.lastLogin || '';
-        break;
-      default:
-        aValue = '';
-        bValue = '';
+    // Search
+    searchInput,
+    currentParams,
+    
+    // Handlers
+    requestSort,
+    handleExplicitSearch,
+    handleSearchKeyPress,
+    handleSearchChange,
+    handlePageChange,
+    handleItemsPerPageChange,
+    handleAddUser,
+    handleEditUser,
+    handleDeleteUser,
+    handleStatusChange,
+    refetch,
+    
+    // Modal state
+    isAddModalOpen,
+    isEditModalOpen,
+    isDeleteModalOpen,
+    selectedUserForEdit,
+    selectedUserForDelete,
+    deletingUser,
+    handleModalClose,
+    handleEditModalClose,
+    handleDeleteModalClose,
+    handleModalSubmit,
+    handleConfirmDelete,
+    
+    // Status popover state
+    openStatusPopover,
+    setOpenStatusPopover,
+    selectedStatuses,
+    statusDropdownPosition,
+    setStatusDropdownPosition,
+    clickCoordinates,
+    setClickCoordinates,
+    statusPopoverRef,
+
+    // Role popover state
+    openRolePopover,
+    setOpenRolePopover,
+    selectedRoles,
+    setSelectedRoles,
+    roleDropdownPosition,
+    setRoleDropdownPosition,
+    roleClickCoordinates,
+    setRoleClickCoordinates,
+    rolePopoverRef
+  } = useSecurityTable();
+
+  // Get current user's division information and user ID
+  const { divisionId, divisionName, isManager } = useCurrentUserDivision();
+  const { isAdmin, userId } = useRoleContext();
+
+  // Notification hook
+  const notification = useNotification();
+
+  // Local state for pending role changes
+  const [pendingRoles, setPendingRoles] = useState<Record<string, RoleType[]>>({});
+  const [originalRoles, setOriginalRoles] = useState<Record<string, RoleType[]>>({});
+
+  // Filter out the current user from the displayed users
+  const filteredUsers = users.filter(user => user.id !== userId);
+
+  // Helper function to sort roles in the desired order (D, A, I, S)
+  const sortRolesForDisplay = (roles: RoleType[]): RoleType[] => {
+    const sorted: RoleType[] = [];
+    
+    // Add Administrator first if present
+    if (roles.includes("Administrator")) {
+      sorted.push("Administrator");
     }
     
-    if (aValue < bValue) {
-      return sortConfig.direction === 'ascending' ? -1 : 1;
-    }
-    if (aValue > bValue) {
-      return sortConfig.direction === 'ascending' ? 1 : -1;
-    }
-    return 0;
-  });
-
-  // Pagination
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage);
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = sortedData.slice(indexOfFirstItem, indexOfLastItem);
-
-  // Handlers
-  const handlePageChange = (page: number) => setCurrentPage(page);
-  const handleItemsPerPageChange = (items: number) => {
-    setItemsPerPage(items);
-    setCurrentPage(1);
-  };
-  const handleSearchChange = (term: string) => {
-    setSearchTerm(term);
-    setCurrentPage(1);
-  };
-  
-  const requestSort = (key: string) => {
-    let direction: 'ascending' | 'descending' = 'ascending';
-    if (sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
-    }
-    setSortConfig({ key, direction });
-  };
-
-  const toggleRole = (userId: string, role: RoleType) => {
-    setSelectedRoles(prev => {
-      const currentRoles = prev[userId] || users.find(u => u.id === userId)?.roles || [];
-      const newRoles = currentRoles.includes(role)
-        ? currentRoles.filter(r => r !== role)
-        : [...currentRoles, role];
-      return { ...prev, [userId]: newRoles };
+    // Add other roles in the specified order: D, A, I, S
+    ROLE_DISPLAY_ORDER.forEach(role => {
+      if (roles.includes(role)) {
+        sorted.push(role);
+      }
     });
+    
+    return sorted;
   };
 
-  const changeStatus = (userId: string, status: StatusType) => {
-    setSelectedStatuses(prev => ({ ...prev, [userId]: status }));
+  // Handle edit user submit with proper typing for EditUserModal
+  const handleEditUserSubmitLocal = async (formData: {
+    username: string;
+    abbreviation: string;
+    roles: RoleType[];
+    division: string;
+    email: string;
+    status: StatusType;
+  }): Promise<void> => {
+    if (!selectedUserForEdit) return;
+    
+    try {
+      console.log('🔄 Submitting user update:', {
+        userId: selectedUserForEdit.id,
+        formData: {
+          ...formData,
+          email: formData.email // Log the email being sent
+        }
+      });
+
+      // Update the user via API call
+      const response = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: selectedUserForEdit.id,
+          roles: formData.roles,
+          username: formData.username,
+          abbreviation: formData.abbreviation,
+          division: formData.division,
+          email: formData.email,
+          status: formData.status,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update user');
+      }
+
+      console.log('✅ User updated successfully:', result.message);
+
+      // Show success notification
+      notification.success(
+        'User Updated Successfully',
+        `"${formData.username}" has been updated successfully.`,
+        4000
+      );
+      
+      // Clear any cached or pending role states that might interfere
+      setPendingRoles({});
+      setOriginalRoles({});
+      setOpenRolePopover(null);
+
+      // Force refresh the table data with a small delay to ensure backend consistency
+      setTimeout(() => {
+      refetch();
+      }, 200);
+      
+    } catch (error) {
+      console.error('❌ Failed to update user:', error);
+      
+      // Show error notification
+      notification.error(
+        'Update Failed',
+        error instanceof Error ? error.message : 'Failed to update user. Please try again.',
+        6000
+      );
+      
+      // Re-throw the error so the modal knows the update failed
+      throw error;
+    }
   };
 
-  const closePopover = () => setOpenPopover(null);
-  const closeStatusPopover = () => setOpenStatusPopover(null);
-
-  const popoverRef = useClickOutside(closePopover);
-  const statusPopoverRef = useClickOutside(closeStatusPopover);
-
-  // Sort direction indicator (same style as DivisionTable)
+  // Sort direction indicator
   const getSortDirectionIndicator = (field: string) => {
-    if (sortConfig.key !== field) {
+    if (sorting.field !== field) {
       return <ChevronDownIcon className="h-4 w-4 text-gray-400 rotate-0 flex-shrink-0" />;
     }
     return (
       <ChevronDownIcon 
         className={`h-4 w-4 text-gray-600 transition-transform flex-shrink-0 ${
-          sortConfig.direction === 'ascending' ? 'rotate-180' : 'rotate-0'
+          sorting.direction === 'asc' ? 'rotate-180' : 'rotate-0'
         }`} 
       />
     );
   };
 
-  // Toggle popover with smart positioning
-  const togglePopover = (id: string, event: React.MouseEvent) => {
+  // Toggle role popover with smart positioning
+  const toggleRolePopover = (id: string, event: React.MouseEvent) => {
     const targetElement = event.currentTarget as HTMLElement;
-    const rect = targetElement.getBoundingClientRect();
+    const position = calculateDropdownPosition(targetElement, 250);
     
-    // Better smart positioning - check available space below vs above
-    const windowHeight = window.innerHeight;
-    const spaceBelow = windowHeight - rect.bottom;
-    const spaceAbove = rect.top;
-    const dropdownHeight = 300; // Approximate height of dropdown
+    setRoleDropdownPosition(position.direction);
+    setRoleClickCoordinates({ x: position.x, y: position.y });
     
-    const shouldShowAbove = spaceBelow < dropdownHeight && spaceAbove > spaceBelow;
-    const direction = shouldShowAbove ? 'top' : 'bottom';
-    
-    setDropdownPosition(direction);
-    setClickCoordinates({ 
-      x: rect.left, 
-      y: direction === 'top' ? rect.top - 10 : rect.bottom + 10
-    });
-    setOpenPopover(openPopover === id ? null : id);
+    if (openRolePopover === id) {
+      // Closing the dropdown, clear pending changes
+      console.log('🔒 Closing role dropdown for user:', id);
+      setOpenRolePopover(null);
+      setPendingRoles(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+      setOriginalRoles(prev => {
+        const newState = { ...prev };
+        delete newState[id];
+        return newState;
+      });
+    } else {
+      // Opening the dropdown, initialize pending roles with current user roles
+      const user = users.find(u => u.id === id);
+      if (user) {
+        console.log('🔓 Opening role dropdown for user:', id);
+        console.log('👤 User roles from API:', user.roles);
+        console.log('👤 User roles type:', typeof user.roles, Array.isArray(user.roles));
+        
+        // Ensure we have the most current roles from the API data
+        const userRoles = Array.isArray(user.roles) ? [...(user.roles as RoleType[])] : [];
+        console.log('📋 Initial pending roles being set:', userRoles);
+        
+        setPendingRoles(prev => ({ ...prev, [id]: userRoles }));
+        setOriginalRoles(prev => ({ ...prev, [id]: [...userRoles] }));
+      }
+      setOpenRolePopover(id);
+    }
   };
 
-  const handleRoleChange = async (userId: string, role: RoleType) => {
-    // Here you would implement the API call to update user roles
-    // For now, we'll just show console log and close the popover
-    console.log(`Toggling role ${role} for user ${userId}`);
-    setOpenPopover(null);
-    // After successful API call, refresh the data
-    // refetch();
-  };
-
-  // Toggle status popover with smart positioning
+  // Toggle status popover with smart positioning  
   const toggleStatusPopover = (id: string, event: React.MouseEvent) => {
     const targetElement = event.currentTarget as HTMLElement;
     const position = calculateDropdownPosition(targetElement, 250);
@@ -210,113 +288,166 @@ export default function SecurityTable() {
     setOpenStatusPopover(openStatusPopover === id ? null : id);
   };
 
-  // Modal states
-  const [isAddUserModalOpen, setIsAddUserModalOpen] = useState(false);
-  const [isEditUserModalOpen, setIsEditUserModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [selectedUserForEdit, setSelectedUserForEdit] = useState<UserFormData | null>(null);
-  const [selectedUserForDelete, setSelectedUserForDelete] = useState<{id: string, name: string} | null>(null);
-  const [selectedUserForTransfer, setSelectedUserForTransfer] = useState<{id: string, name: string} | null>(null);
-
-  // Action handlers
-  const handleAddUser = () => {
-    setIsAddUserModalOpen(true);
+  // Handle role toggle in pending state
+  const handleRoleToggle = (userId: string, role: RoleType) => {
+    console.log('🎯 Role toggle called:', { userId, role });
+    
+    setPendingRoles(prev => {
+      const currentRoles = prev[userId] || [];
+      console.log('📋 Current roles before toggle:', currentRoles);
+      
+      const updatedRoles = currentRoles.includes(role)
+        ? currentRoles.filter(r => r !== role)
+        : [...currentRoles, role];
+      
+      console.log('📋 Updated roles after toggle:', updatedRoles);
+      
+      return { ...prev, [userId]: updatedRoles };
+    });
   };
 
-  const handleAddUserSubmit = (userData: UserFormData) => {
-    console.log('New user data:', userData);
-    // Refresh the user list after adding
-    refetch();
-  };
-
-  const handleEditUserSubmit = (userData: UserFormData) => {
-    console.log('Updated user data:', userData);
-    // Refresh the user list after editing
-    refetch();
-  };
-
-  const handleEditUser = (userId: string) => {
-    // Find the user data from current items
-    const userToEdit = currentItems.find(user => user.id === userId);
-    if (userToEdit) {
-      // Convert the user data to the expected format
-      const userData = {
-        id: userToEdit.id,
-        username: userToEdit.username,
-        abbreviation: userToEdit.abbreviation,
-        roles: userToEdit.roles as RoleType[],
-        division: userToEdit.division,
-        managerId: '1', // Default to first manager, will need to map properly
-        email: userToEdit.email,
-        officePhone: '+1 (555) 123-4567', // Default phone since not in current API
-        homePhone: '',
-        homeAddress: '',
-        status: userToEdit.status as StatusType,
-        passwordType: 'admin' as const,
-        password: '',
-      };
-      setSelectedUserForEdit(userData);
-      setIsEditUserModalOpen(true);
+  // Debug function to check available roles in database
+  const checkAvailableRoles = async () => {
+    try {
+      const response = await fetch('/api/roles');
+      const result = await response.json();
+      console.log('Available roles in database:', result);
+      return result;
+    } catch (error) {
+      console.error('Failed to fetch available roles:', error);
     }
   };
 
-  const handleTransferUser = (userId: string) => {
-    // Find the user data from current items
-    const userToTransfer = currentItems.find(user => user.id === userId);
-    if (userToTransfer) {
-      setSelectedUserForTransfer({
-        id: userToTransfer.id,
-        name: userToTransfer.username
+  // Apply role changes
+  const handleApplyRoleChanges = async (userId: string) => {
+    const newRoles = pendingRoles[userId];
+    if (!newRoles) return;
+
+    // Remove duplicates from roles array
+    const uniqueRoles = [...new Set(newRoles)];
+    
+    console.log('🔄 Original roles:', newRoles);
+    console.log('🔄 Unique roles after deduplication:', uniqueRoles);
+
+    try {
+      console.log(`Applying role changes for user ${userId}:`, uniqueRoles);
+      
+      // Debug: Check available roles first
+      await checkAvailableRoles();
+      
+      // Make API call to update user roles
+      const response = await fetch('/api/users', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: userId,
+          roles: uniqueRoles  // Send deduplicated roles
+        }),
       });
-      setIsTransferModalOpen(true);
-    }
-  };
 
-  const handleTransferSubmit = (transferData: TransferFormData) => {
-    if (selectedUserForTransfer) {
-      console.log('Transfer data:', {
-        userId: selectedUserForTransfer.id,
-        userName: selectedUserForTransfer.name,
-        ...transferData
+      console.log('📊 API Response status:', response.status);
+      console.log('📊 API Response headers:', Object.fromEntries(response.headers.entries()));
+
+      let result;
+      try {
+        result = await response.json();
+        console.log('📊 API Response body:', result);
+      } catch (parseError) {
+        console.error('❌ Failed to parse response as JSON:', parseError);
+        const textResponse = await response.text();
+        console.log('📊 Raw response text:', textResponse);
+        throw new Error(`Invalid JSON response: ${textResponse}`);
+      }
+
+      if (!response.ok) {
+        console.error('❌ Role update failed:', {
+          status: response.status,
+          error: result.error,
+          details: result.details,
+          requestedRoles: result.requestedRoles,
+          foundRoles: result.foundRoles,
+          fullResult: result
+        });
+        
+        // Show detailed error with role information
+        let errorMessage = result.error || 'Failed to update user roles';
+        if (result.requestedRoles && result.foundRoles) {
+          errorMessage += `\n\nRequested: ${result.requestedRoles.join(', ')}\nFound in DB: ${result.foundRoles.join(', ')}`;
+        }
+        if (result.details) {
+          errorMessage += `\n\nDetails: ${result.details}`;
+        }
+        
+        throw new Error(errorMessage);
+      }
+
+      console.log('✅ User roles updated successfully:', result.message);
+      
+      // Show success notification
+      notification.success(
+        'Roles Updated Successfully',
+        'User roles have been updated and saved.',
+        4000
+      );
+      
+      // Clean up pending state first
+      setPendingRoles(prev => {
+        const newState = { ...prev };
+        delete newState[userId];
+        return newState;
       });
-      // Here you would typically call your API to process the transfer
-      // For now, we'll just log it
-      setIsTransferModalOpen(false);
-      setSelectedUserForTransfer(null);
-    }
-  };
-
-  const handleCloseTransferModal = () => {
-    setIsTransferModalOpen(false);
-    setSelectedUserForTransfer(null);
-  };
-
-  const handleRemoveUser = (userId: string) => {
-    // Find the user data from current items
-    const userToDelete = currentItems.find(user => user.id === userId);
-    if (userToDelete) {
-      setSelectedUserForDelete({
-        id: userToDelete.id,
-        name: userToDelete.username
+      setOriginalRoles(prev => {
+        const newState = { ...prev };
+        delete newState[userId];
+        return newState;
       });
-      setIsDeleteModalOpen(true);
+      setOpenRolePopover(null);
+      
+      // Force refresh the table data to reflect the changes
+      // Add a small delay to ensure backend consistency
+      setTimeout(() => {
+        refetch();
+      }, 100);
+      
+    } catch (error) {
+      console.error('❌ Failed to update user roles:', error);
+      // Show error notification with detailed message
+      notification.error(
+        'Update Failed',
+        error instanceof Error ? error.message : 'Failed to update user roles. Please try again.',
+        8000
+      );
+      
+      // Reset pending roles to original on error
+      if (originalRoles[userId]) {
+        setPendingRoles(prev => ({
+          ...prev,
+          [userId]: [...originalRoles[userId]]
+        }));
+      }
     }
   };
 
-  const handleConfirmDelete = () => {
-    if (selectedUserForDelete) {
-      console.log('Confirmed delete user:', selectedUserForDelete.id);
-      // Here you would typically call your API to delete the user
-      // For now, we'll just log it
-      setIsDeleteModalOpen(false);
-      setSelectedUserForDelete(null);
-    }
+  // Cancel role changes
+  const handleCancelRoleChanges = (userId: string) => {
+    setOpenRolePopover(null);
+    setPendingRoles(prev => {
+      const newState = { ...prev };
+      delete newState[userId];
+      return newState;
+    });
+    setOriginalRoles(prev => {
+      const newState = { ...prev };
+      delete newState[userId];
+      return newState;
+    });
   };
 
-  const handleCloseDeleteModal = () => {
-    setIsDeleteModalOpen(false);
-    setSelectedUserForDelete(null);
+  // Handle role change (deprecated - kept for compatibility)
+  const handleRoleChange = async (userId: string, role: RoleType) => {
+    handleRoleToggle(userId, role);
   };
 
   // Show loading state
@@ -344,15 +475,18 @@ export default function SecurityTable() {
   return (
     <div className="rounded-sm border border-stroke bg-white p-4 shadow-default dark:border-gray-800 dark:bg-gray-900" style={{ overflow: 'visible' }}>
       <SearchAndFilters
-        itemsPerPage={itemsPerPage}
+        itemsPerPage={currentParams.limit}
         onItemsPerPageChange={handleItemsPerPageChange}
-        searchTerm={searchTerm}
+        searchTerm={searchInput}
         onSearchChange={handleSearchChange}
+        onSearchSubmit={handleExplicitSearch}
+        onSearchKeyPress={handleSearchKeyPress}
         onAddUser={handleAddUser}
+        disableAddUser={isManager && !divisionId}
       />
 
       {/* Desktop Table View */}
-      <div className="max-w-full overflow-x-auto custom-scrollbar" style={{ overflow: 'visible' }}>
+      <div className="max-w-full overflow-x-auto custom-scrollbar overflow-y-visible" style={{ overflowY: 'visible' }}>
         <div className="min-w-[1200px]" style={{ overflow: 'visible' }}>
           <Table>
             <TableHeader className="bg-gray-50 dark:bg-gray-800">
@@ -372,10 +506,10 @@ export default function SecurityTable() {
                     {getSortDirectionIndicator('abbreviation')}
                   </div>
                 </TableCell>
-                <TableCell isHeader className="px-4 py-3 min-w-[120px]">
-                  <div className="flex items-center gap-2 text-left">
+                <TableCell isHeader className="px-4 py-3 min-w-[150px]">
+                  <div className="flex items-center gap-2 text-left cursor-pointer" onClick={() => requestSort('roles')}>
                     <span className="font-medium text-gray-500 dark:text-gray-400">Role(s)</span>
-                    <ChevronDownIcon className="h-4 w-4 text-gray-400 rotate-0 flex-shrink-0" />
+                    {getSortDirectionIndicator('roles')}
                   </div>
                 </TableCell>
                 <TableCell isHeader className="px-4 py-3 min-w-[120px]">
@@ -384,12 +518,14 @@ export default function SecurityTable() {
                     {getSortDirectionIndicator('division')}
                   </div>
                 </TableCell>
+                {isAdmin() && (
                 <TableCell isHeader className="px-4 py-3 min-w-[150px]">
                   <div className="flex items-center gap-2 text-left cursor-pointer" onClick={() => requestSort('manager')}>
                     <span className="font-medium text-gray-500 dark:text-gray-400">Manager</span>
                     {getSortDirectionIndicator('manager')}
                   </div>
                 </TableCell>
+                )}
                 <TableCell isHeader className="px-4 py-3 min-w-[120px] hidden xl:table-cell">
                   <div className="flex items-center gap-2 text-left cursor-pointer" onClick={() => requestSort('lastLogin')}>
                     <span className="font-medium text-gray-500 dark:text-gray-400">Last Login</span>
@@ -408,10 +544,10 @@ export default function SecurityTable() {
               </TableRow>
             </TableHeader>
             <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {currentItems.map((user, index) => (
+              {filteredUsers.map((user, index) => (
                 <TableRow key={user.id}>
                   <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    {indexOfFirstItem + index + 1}
+                    {user.no}
                   </TableCell>
                   <TableCell className="px-4 py-4 text-start">
                     <div className="flex items-center gap-3">
@@ -443,10 +579,10 @@ export default function SecurityTable() {
                   <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
                     <div className="relative">
                       <button
-                        onClick={(e) => togglePopover(user.id, e)}
+                        onClick={(e) => toggleRolePopover(user.id, e)}
                         className="flex -space-x-2 flex-wrap hover:scale-105 transition-transform group relative"
                       >
-                        {user.roles.slice(0, 3).map((role, roleIndex) => (
+                        {sortRolesForDisplay(pendingRoles[user.id] || user.roles).slice(0, 3).map((role, roleIndex) => (
                           <div 
                             key={roleIndex} 
                             className={`flex items-center justify-center h-8 w-8 rounded-full text-white font-medium text-xs ${ROLE_COLORS[role as RoleType]?.color || 'bg-gray-500'} border-2 border-white dark:border-gray-800`}
@@ -455,56 +591,113 @@ export default function SecurityTable() {
                             {ROLE_COLORS[role as RoleType]?.abbr || role.charAt(0)}
                           </div>
                         ))}
-                        {user.roles.length > 3 && (
+                        {(pendingRoles[user.id] || user.roles).length > 3 && (
                           <div className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-500 text-white font-medium text-xs border-2 border-white dark:border-gray-800">
-                            +{user.roles.length - 3}
+                            +{(pendingRoles[user.id] || user.roles).length - 3}
                           </div>
                         )}
                         
                         {/* Dropdown indicator icon */}
-                        <div className="ml-2 opacity-60 group-hover:opacity-100 transition-opacity">
+                        <div className="ml-3 mt-2 opacity-60 group-hover:opacity-100 transition-opacity">
                           <ChevronDownIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                         </div>
                       </button>
 
-                      {/* Role Dropdown */}
-                      {openPopover === user.id && (
+                      {/* Role Dropdown - Updated to match AddUserModal style */}
+                      {openRolePopover === user.id && (
                         <div
-                          ref={popoverRef}
-                          className={`fixed z-[9999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 w-48 ${
-                            dropdownPosition === 'top' ? 'bottom-full mb-2' : 'top-full mt-2'
-                          }`}
+                          ref={rolePopoverRef}
+                          className="fixed z-[9999] bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-80 overflow-y-auto"
                           style={{ 
-                            left: `${clickCoordinates.x}px`,
-                            top: `${clickCoordinates.y}px`
+                            left: `${roleClickCoordinates.x}px`,
+                            top: `${roleClickCoordinates.y}px`,
+                            transform: roleDropdownPosition === 'top' ? 'translateY(-100%)' : 'none',
+                            width: '280px'
                           }}
                         >
-                          <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2 px-2">
-                            Assign Roles
-                          </div>
-                          <div className="space-y-1">
-                            {AVAILABLE_ROLES.map((role) => (
+                          <div className="p-2">
+                            {/* Administrator role shown separately - only for Administrators */}
+                            {isAdmin() && (
                               <div
-                                key={role}
-                                className="flex items-center space-x-2 px-2 py-1.5 hover:bg-gray-50 dark:hover:bg-gray-700 rounded cursor-pointer"
-                                onClick={() => handleRoleChange(user.id, role)}
+                                key="Administrator"
+                                className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer mb-2 border-b border-gray-200 dark:border-gray-600 pb-2"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRoleToggle(user.id, "Administrator");
+                                }}
                               >
-                                <Checkbox
-                                  checked={user.roles.includes(role)}
-                                  onChange={() => handleRoleChange(user.id, role)}
-                                />
-                                <div className="flex items-center space-x-2">
-                                  <div
-                                    className={`w-5 h-5 rounded-full flex items-center justify-center text-white text-xs font-medium ${ROLE_COLORS[role]?.color || 'bg-gray-500'}`}
-                                  >
-                                    {ROLE_COLORS[role]?.abbr || role.charAt(0)}
-                                  </div>
-                                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                                    {role}
-                                  </span>
+                                <div
+                                  className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                                    (pendingRoles[user.id] || user.roles).includes("Administrator")
+                                      ? 'bg-blue-500 border-blue-500'
+                                      : 'border-gray-300 dark:border-gray-500'
+                                  }`}
+                                >
+                                  {(pendingRoles[user.id] || user.roles).includes("Administrator") && (
+                                    <CheckLineIcon className="w-4 h-4 text-white" />
+                                  )}
                                 </div>
+                                <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS["Administrator"].color} mr-2`}>
+                                  {ROLE_COLORS["Administrator"].abbr}
+                                </div>
+                                <span className="text-sm text-gray-700 dark:text-gray-300">Administrator</span>
+                                {(pendingRoles[user.id] || user.roles).includes("Administrator") && (
+                                  <CheckLineIcon className="ml-auto h-4 w-4 text-green-500" />
+                                )}
                               </div>
-                            ))}
+                            )}
+                            
+                            {/* Other roles in specified order: D, A, I, S - filter out Divisional Manager for non-admins */}
+                            {ROLE_DISPLAY_ORDER
+                              .filter(role => isAdmin() || role !== "Divisional Manager")
+                              .map((role) => {
+                                const isSelected = (pendingRoles[user.id] || user.roles).includes(role as RoleType);
+                                return (
+                                  <div
+                                    key={role}
+                                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-600 rounded cursor-pointer"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRoleToggle(user.id, role as RoleType);
+                                    }}
+                                  >
+                                    <div
+                                      className={`w-6 h-6 rounded border-2 flex items-center justify-center ${
+                                        isSelected
+                                          ? 'bg-blue-500 border-blue-500'
+                                          : 'border-gray-300 dark:border-gray-500'
+                                      }`}
+                                    >
+                                      {isSelected && (
+                                        <CheckLineIcon className="w-4 h-4 text-white" />
+                                      )}
+                                    </div>
+                                    <div className={`flex items-center justify-center h-6 w-6 rounded-full text-white text-xs ${ROLE_COLORS[role as RoleType].color} mr-2`}>
+                                      {ROLE_COLORS[role as RoleType].abbr}
+                                    </div>
+                                    <span className="text-sm text-gray-700 dark:text-gray-300">{role}</span>
+                                    {isSelected && (
+                                      <CheckLineIcon className="ml-auto h-4 w-4 text-green-500" />
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            
+                            {/* Apply and Cancel buttons */}
+                            <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+                              <button
+                                onClick={() => handleApplyRoleChanges(user.id)}
+                                className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
+                              >
+                                Apply
+                              </button>
+                              <button
+                                onClick={() => handleCancelRoleChanges(user.id)}
+                                className="flex-1 px-3 py-2 bg-gray-300 hover:bg-gray-400 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md transition-colors"
+                              >
+                                Cancel
+                              </button>
+                              </div>
                           </div>
                         </div>
                       )}
@@ -513,26 +706,75 @@ export default function SecurityTable() {
                   <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {user.division}
                   </TableCell>
+                  {isAdmin() && (
                   <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
                     {user.manager}
                   </TableCell>
+                  )}
                   <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400 hidden xl:table-cell">
                     {user.lastLogin || 'Never'}
                   </TableCell>
                   <TableCell className="px-4 py-4 text-sm text-gray-600 dark:text-gray-400">
-                    <Badge
-                      size="sm"
-                      color={statusConfig[user.status as StatusType]?.color || 'gray'}
-                    >
-                      {user.status}
-                    </Badge>
+                    <div className="relative">
+                      <div 
+                        className="flex items-center gap-1 cursor-pointer relative"
+                        onClick={(e) => toggleStatusPopover(user.id, e)}
+                      >
+                        <Badge
+                          size="sm"
+                          color={statusConfig[user.status as StatusType]?.color || 'gray'}
+                        >
+                          {selectedStatuses[user.id] || user.status}
+                        </Badge>
+                        <ChevronDownIcon className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                      </div>
+
+                      {/* Status Dropdown */}
+                      {openStatusPopover === user.id && (
+                        <div 
+                          ref={statusPopoverRef}
+                          className="fixed z-50 w-32 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
+                          style={{
+                            left: `${clickCoordinates.x}px`,
+                            top: `${clickCoordinates.y}px`,
+                            transform: statusDropdownPosition === 'top' ? 'translateY(-100%)' : 'none'
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="p-2">
+                            {AVAILABLE_STATUSES.map((status) => {
+                              const isSelected = (selectedStatuses[user.id] || user.status) === status;
+                              return (
+                                <div
+                                  key={status}
+                                  className="flex items-center justify-between px-2 py-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleStatusChange(user.id, status);
+                                  }}
+                                >
+                                  <Badge
+                                    size="sm"
+                                    color={statusConfig[status]?.color || 'gray'}
+                                  >
+                                    {status}
+                                  </Badge>
+                                  {isSelected && (
+                                    <CheckLineIcon className="h-4 w-4 text-green-500" />
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </TableCell>
                   <TableCell className="px-4 py-4">
                     <ActionButtons
-                      userId={parseInt(user.id) || 0}
-                      onEdit={(id) => handleEditUser(id.toString())}
-                      onTransfer={(id) => handleTransferUser(id.toString())}
-                      onRemove={(id) => handleRemoveUser(id.toString())}
+                      userId={user.id}
+                      onEdit={(id) => handleEditUser(id)}
+                      onRemove={(id) => handleDeleteUser(id)}
                     />
                   </TableCell>
                 </TableRow>
@@ -545,48 +787,52 @@ export default function SecurityTable() {
       {/* Pagination */}
       <div className="mt-6 flex flex-col items-center justify-between gap-4 sm:flex-row">
         <div className="text-sm text-gray-500 dark:text-gray-400">
-          Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, sortedData.length)} of {sortedData.length} entries
+          Showing {filteredUsers.length} of {pagination.totalCount > 0 ? pagination.totalCount - 1 : 0} users
         </div>
         <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
           onPageChange={handlePageChange}
         />
       </div>
 
       {/* Modals */}
       <AddUserModal
-        isOpen={isAddUserModalOpen}
-        onClose={() => setIsAddUserModalOpen(false)}
-        onSubmit={handleAddUserSubmit}
+        isOpen={isAddModalOpen}
+        onClose={handleModalClose}
+        onSubmit={handleModalSubmit}
+        prefilledDivision={isManager && divisionName ? divisionName : undefined}
+        prefilledManagerId={isManager && divisionId ? divisionId : undefined}
+        disableDivisionFields={isManager && !!divisionId}
       />
 
       {selectedUserForEdit && (
         <EditUserModal
-          isOpen={isEditUserModalOpen}
-          onClose={() => setIsEditUserModalOpen(false)}
-          onSubmit={handleEditUserSubmit}
-          userData={selectedUserForEdit}
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            handleEditModalClose();
+          }}
+          onSubmit={handleEditUserSubmitLocal}
+          userData={{
+            id: selectedUserForEdit.id,
+            username: users.find(u => u.id === selectedUserForEdit.id)?.username || '',
+            abbreviation: users.find(u => u.id === selectedUserForEdit.id)?.abbreviation || '',
+            roles: users.find(u => u.id === selectedUserForEdit.id)?.roles || [],
+            division: users.find(u => u.id === selectedUserForEdit.id)?.division || '',
+            manager: users.find(u => u.id === selectedUserForEdit.id)?.manager || '',
+            email: users.find(u => u.id === selectedUserForEdit.id)?.email || '',
+            status: users.find(u => u.id === selectedUserForEdit.id)?.status || 'Active'
+          }}
         />
       )}
 
       {selectedUserForDelete && (
         <DeleteModal
           isOpen={isDeleteModalOpen}
-          onClose={handleCloseDeleteModal}
+          onClose={handleDeleteModalClose}
           onConfirm={handleConfirmDelete}
-          userId={parseInt(selectedUserForDelete.id) || 0}
           userName={selectedUserForDelete.name}
-        />
-      )}
-
-      {selectedUserForTransfer && (
-        <TransferUserModal
-          isOpen={isTransferModalOpen}
-          onClose={handleCloseTransferModal}
-          onSubmit={handleTransferSubmit}
-          userId={parseInt(selectedUserForTransfer.id) || 0}
-          userName={selectedUserForTransfer.name}
+          isDeleting={deletingUser}
         />
       )}
     </div>

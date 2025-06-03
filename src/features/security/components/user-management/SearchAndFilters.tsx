@@ -7,7 +7,10 @@ interface SearchAndFiltersProps {
   onItemsPerPageChange: (value: number) => void;
   searchTerm: string;
   onSearchChange: (value: string) => void;
+  onSearchSubmit?: () => void;
+  onSearchKeyPress?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onAddUser: () => void;
+  disableAddUser?: boolean;
 }
 
 export function SearchAndFilters({
@@ -15,7 +18,10 @@ export function SearchAndFilters({
   onItemsPerPageChange,
   searchTerm,
   onSearchChange,
-  onAddUser
+  onSearchSubmit,
+  onSearchKeyPress,
+  onAddUser,
+  disableAddUser = false
 }: SearchAndFiltersProps) {
   return (
     <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -37,21 +43,27 @@ export function SearchAndFilters({
       {/* Search and Add User */}
       <div className="flex flex-col gap-3 order-1 sm:order-2 sm:flex-row sm:items-center">
         <div className="relative flex-1 sm:flex-none">
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
-            <SearchIcon />
-          </span>
           <input
             type="text"
             placeholder="Search users..."
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
+            onKeyPress={onSearchKeyPress}
             className="w-full sm:w-64 rounded-lg border border-gray-300 bg-transparent py-2.5 pl-10 pr-4 text-sm outline-none transition-colors focus:border-brand-500 focus:ring-1 focus:ring-brand-500 dark:border-gray-700 dark:bg-gray-900 dark:text-white dark:placeholder-gray-400"
           />
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
+            <SearchIcon />
+          </span>
         </div>
         
         <button
           onClick={onAddUser}
-          className="flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 min-w-[120px] sm:min-w-0"
+          disabled={disableAddUser}
+          className={`flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium text-white transition-all focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 min-w-[120px] sm:min-w-0 ${
+            disableAddUser
+              ? 'bg-gray-400 cursor-not-allowed opacity-60'
+              : 'bg-brand-500 hover:bg-brand-600'
+          }`}
         >
           <UserPlusIcon className="h-4 w-4" />
           <span>Add User</span>

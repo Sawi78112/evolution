@@ -26,16 +26,11 @@ export function StatusPopover({
   return (
     <div 
       ref={statusPopoverRef}
-      className={`fixed z-50 w-32 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 ${
-        position === 'top' 
-          ? 'transform -translate-y-2' 
-          : 'transform translate-y-2'
-      }`}
+      className="fixed z-50 w-32 rounded-md border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800"
       style={{
-        left: `${coordinates.x - 20}px`,
-        top: position === 'top' ? 
-          `${coordinates.y - 100}px` : 
-          `${coordinates.y + 40}px`
+        left: `${coordinates.x}px`,
+        top: `${coordinates.y}px`,
+        transform: position === 'top' ? 'translateY(-100%)' : 'none'
       }}
       onClick={(e) => e.stopPropagation()}
     >

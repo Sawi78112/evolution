@@ -2,9 +2,9 @@ import { RoleType, StatusType, RoleConfig, StatusConfig } from '../types';
 
 // Role color mappings and configurations
 export const ROLE_COLORS = {
-  "Administrator": { color: "bg-blue-500", abbr: "A" },
-  "Divisional Manager": { color: "bg-green-500", abbr: "M" },
-  "Analyst": { color: "bg-purple-500", abbr: "N" },
+  "Administrator": { color: "bg-blue-500", abbr: "AD" },
+  "Divisional Manager": { color: "bg-green-500", abbr: "D" },
+  "Analyst": { color: "bg-purple-500", abbr: "A" },
   "Investigator": { color: "bg-orange-500", abbr: "I" },
   "System Support": { color: "bg-gray-500", abbr: "S" },
 } as const;

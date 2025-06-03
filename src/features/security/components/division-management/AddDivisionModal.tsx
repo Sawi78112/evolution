@@ -5,7 +5,7 @@ import { createPortal } from 'react-dom';
 import { ChevronDownIcon, SearchIcon } from '@/assets/icons';
 import Button from '@/components/ui/button/Button';
 import { useAvailableDivisionManagers, DivisionManagerUser } from '../../hooks/useDivisionManagers';
-import { useCurrentUser } from '../../hooks/useCurrentUser';
+import { useAuth } from '@/context/AuthContext';
 import { useNotification } from '@/components/ui/notification';
 
 interface AddDivisionModalProps {
@@ -23,7 +23,7 @@ export interface DivisionFormData {
 
 export function AddDivisionModal({ isOpen, onClose, onSubmit, onRefetch }: AddDivisionModalProps) {
   const { divisionManagers, loading, error } = useAvailableDivisionManagers();
-  const { currentUser, getUserId } = useCurrentUser();
+  const { user } = useAuth();
   const notification = useNotification();
   
   const [formData, setFormData] = useState<DivisionFormData>({
@@ -83,7 +83,7 @@ export function AddDivisionModal({ isOpen, onClose, onSubmit, onRefetch }: AddDi
       return;
     }
 
-    if (!currentUser) {
+    if (!user?.id) {
       notification.error('Error', 'Current user not loaded. Please refresh and try again.');
       return;
     }
@@ -100,7 +100,7 @@ export function AddDivisionModal({ isOpen, onClose, onSubmit, onRefetch }: AddDi
           name: formData.name,
           abbreviation: formData.abbreviation,
           managerId: formData.managerId || null,
-          createdById: getUserId() // Send user UUID instead of username + abbreviation
+          createdById: user.id // Send user UUID from auth context
         }),
       });
 

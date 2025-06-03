@@ -252,11 +252,13 @@ export async function GET(request: NextRequest) {
                                       .lte('created_at', parsedDate.endDate.toISOString());
           }
         } else {
-          // Text-based search
+          // Text-based search - Enhanced to search across all table fields
+          
+          // First, find matching users for manager and created_by fields
           const { data: matchingUsers } = await supabase
             .from('users')
-            .select('user_id, username')
-            .ilike('username', `%${search}%`);
+            .select('user_id, username, user_abbreviation')
+            .or(`username.ilike.%${search}%, user_abbreviation.ilike.%${search}%`);
 
           const matchingUserIds = matchingUsers ? matchingUsers.map(user => user.user_id) : [];
 
@@ -268,18 +270,24 @@ export async function GET(request: NextRequest) {
           const isNumberSearch = /^\d+$/.test(search.trim());
 
           const searchConditions = [
-            `name.ilike.%${search}%`,
-            `abbreviation.ilike.%${search}%`
+            `name.ilike.%${search}%`,              // Division Name
+            `abbreviation.ilike.%${search}%`       // Abbreviation
           ];
 
+          // Search in manager users (by username and abbreviation)
           if (matchingUserIds.length > 0) {
-            searchConditions.push(`created_by.in.(${matchingUserIds.join(',')})`);
+            searchConditions.push(`manager_user_id.in.(${matchingUserIds.join(',')})`);  // Manager
+            searchConditions.push(`created_by.in.(${matchingUserIds.join(',')})`);       // Created By
           }
 
+          // Status search
           if (isStatusSearch) {
             const statusValue = searchLower === 'active' ? 'Active' : 'Inactive';
             searchConditions.push(`status.eq.${statusValue}`);
           }
+
+          // Number search (for Total Users - we'll handle this in post-processing)
+          // We can't directly search total users in the database since it's calculated
 
           allDataQuery = allDataQuery.or(searchConditions.join(','));
         }
@@ -329,6 +337,27 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Calculate user counts for each division
+      const divisionIds = allDivisions.map(d => d.division_id);
+      let userCounts = new Map<string, number>();
+      
+      if (divisionIds.length > 0) {
+        const { data: userCountData, error: userCountError } = await supabase
+          .from('users')
+          .select('division_id')
+          .in('division_id', divisionIds);
+
+        if (!userCountError && userCountData) {
+          // Count users per division
+          userCountData.forEach(user => {
+            if (user.division_id) {
+              const currentCount = userCounts.get(user.division_id) || 0;
+              userCounts.set(user.division_id, currentCount + 1);
+            }
+          });
+        }
+      }
+
       // Transform all data
       let allTransformedDivisions = allDivisions.map(division => {
         const manager = division.manager_user_id ? userMap.get(division.manager_user_id) : null;
@@ -351,7 +380,7 @@ export async function GET(request: NextRequest) {
             name: creator.username,
             abbreviation: creator.user_abbreviation
           } : null,
-          totalUsers: 0
+          totalUsers: userCounts.get(division.division_id) || 0
         };
       });
 
@@ -401,6 +430,35 @@ export async function GET(request: NextRequest) {
       const offset = (page - 1) * limit;
       divisions = allTransformedDivisions.slice(offset, offset + limit);
       count = allTransformedDivisions.length;
+
+      // Post-process search for numeric fields like Total Users and Row Numbers
+      if (search && /^\d+$/.test(search.trim())) {
+        const searchNumber = parseInt(search.trim());
+        const originalData = allTransformedDivisions;
+        
+        // Filter for Total Users matching the search number
+        const totalUsersMatches = originalData.filter(division => 
+          division.totalUsers === searchNumber
+        );
+        
+        // Filter for Row Number (No column) matching the search number
+        const rowNumberMatches = originalData.filter((division, index) => 
+          (index + 1) === searchNumber
+        );
+        
+        // Combine both matches (Total Users and Row Numbers)
+        const combinedMatches = [
+          ...totalUsersMatches,
+          ...rowNumberMatches.filter(row => !totalUsersMatches.includes(row)) // Avoid duplicates
+        ];
+        
+        // If we found matches, use those instead
+        if (combinedMatches.length > 0) {
+          allTransformedDivisions = combinedMatches;
+          divisions = allTransformedDivisions.slice(offset, offset + limit);
+          count = allTransformedDivisions.length;
+        }
+      }
 
       // For special sorting, we've already transformed the data, so we can skip the later transformation
       // Prepare response directly
@@ -486,6 +544,27 @@ export async function GET(request: NextRequest) {
       if (division.created_by) userIds.add(division.created_by);
     });
 
+    // Calculate user counts for divisions on current page
+    const divisionIds = divisions.map(d => d.division_id);
+    let userCounts = new Map<string, number>();
+    
+    if (divisionIds.length > 0) {
+      const { data: userCountData, error: userCountError } = await supabase
+        .from('users')
+        .select('division_id')
+        .in('division_id', divisionIds);
+
+      if (!userCountError && userCountData) {
+        // Count users per division
+        userCountData.forEach(user => {
+          if (user.division_id) {
+            const currentCount = userCounts.get(user.division_id) || 0;
+            userCounts.set(user.division_id, currentCount + 1);
+          }
+        });
+      }
+    }
+
     // Fetch user data only for current page
     let userMap = new Map();
     if (userIds.size > 0) {
@@ -526,7 +605,7 @@ export async function GET(request: NextRequest) {
           name: creator.username,
           abbreviation: creator.user_abbreviation
         } : null,
-        totalUsers: 0 // Always 0 as requested
+        totalUsers: userCounts.get(division.division_id) || 0 // Calculate actual user count
       };
     });
 

@@ -401,12 +401,19 @@ export default function UserMetaCard() {
     }));
   };
 
-  const handleSave = async () => {
-    if (!user) return;
+  // Check if all required fields are filled
+  const areRequiredFieldsFilled = () => {
+    return formData.firstName.trim() && formData.lastName.trim();
+  };
 
-    // Validation
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      setSaveError('First name and last name are required');
+  const handleSave = async () => {
+    if (!userData?.user_id || !user?.id) {
+      notification.error("Save Error", "Unable to save - user information not available");
+      return;
+    }
+
+    if (!areRequiredFieldsFilled()) {
+      notification.error("Validation Error", "Please fill in all required fields");
       return;
     }
 
@@ -414,50 +421,55 @@ export default function UserMetaCard() {
     setSaveError(null);
 
     try {
-      const profileData: UpdateUserProfileData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        linkedinUrl: formData.linkedinUrl.trim() || undefined,
-        twitterUrl: formData.twitterUrl.trim() || undefined,
-        facebookUrl: formData.facebookUrl.trim() || undefined,
-        instagramUrl: formData.instagramUrl.trim() || undefined,
+      // Prepare update data with the correct interface
+      const updateData: UpdateUserProfileData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        linkedinUrl: formData.linkedinUrl,
+        twitterUrl: formData.twitterUrl,
+        facebookUrl: formData.facebookUrl,
+        instagramUrl: formData.instagramUrl
       };
 
-      const result = await updateUserProfile(user.id, profileData);
+      // Call the API with the correct signature
+      const result = await updateUserProfile(userData.user_id, updateData);
 
-      if (result.success) {
-        // Refresh user data to show updated information
-        await refetch();
-        await refreshUser();
-        
-        // Show success toast notification
-        notification.success("Profile Updated!", "Your profile information has been updated successfully.");
-        console.log("Profile updated successfully");
-        
-        // Close modal immediately
-        closeModal();
-      } else {
-        setSaveError(result.error || 'Failed to update profile');
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update profile');
       }
+
+      // Show success notification
+      notification.success("Profile Updated!", "Your profile has been updated successfully.");
+      
+      // Refresh data to show updated information
+      await refetch();
+      await refreshUser();
+
+      closeModal();
     } catch (error) {
-      console.error('Error updating profile:', error);
-      setSaveError('An unexpected error occurred');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
+      setSaveError(errorMessage);
+      notification.error("Update Failed", errorMessage);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
     if (file) {
+      if (!file.type.startsWith('image/')) {
+        notification.error("Invalid File", "Please select an image file (JPG, PNG, GIF)");
+        return;
+      }
+
       const reader = new FileReader();
-      reader.onload = (event) => {
-        const imageUrl = event.target?.result as string;
-        setTempImageForEdit(imageUrl);
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setTempImageForEdit(result);
         setIsPhotoEditOpen(true);
       };
       reader.readAsDataURL(file);
-      console.log("File selected:", file);
     }
   };
 
@@ -465,7 +477,6 @@ export default function UserMetaCard() {
     setIsPhotoEditOpen(false);
     
     if (!user?.id) {
-      console.error('No user ID available for avatar upload');
       notification.error("Upload Error", "Unable to upload avatar - no user ID available");
       return;
     }
@@ -482,8 +493,6 @@ export default function UserMetaCard() {
       });
       
       if (result.success && result.url) {
-        console.log("Avatar uploaded and database updated successfully:", result.url);
-        
         // Show success notification
         notification.success("Avatar Updated!", "Your profile photo has been updated successfully.");
         
@@ -495,7 +504,6 @@ export default function UserMetaCard() {
         // Clear selected image so it uses the fresh data from database
         setSelectedImage(null);
       } else {
-        console.error("Upload failed:", result.error);
         notification.error("Upload Error", result.error || "Failed to upload avatar");
       }
     } catch (error) {
@@ -557,12 +565,8 @@ export default function UserMetaCard() {
                 alt="user"
                 className="object-cover"
                 onError={(e) => {
-                  console.error('Avatar image failed to load:', avatarUrl);
                   // Fallback to default avatar on error
                   e.currentTarget.src = '/images/default-avatar.svg';
-                }}
-                onLoad={() => {
-                  console.log('Avatar image loaded successfully:', avatarUrl);
                 }}
               />
               <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -591,7 +595,7 @@ export default function UserMetaCard() {
                 type="file"
                 accept="image/*"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                onChange={handleImageChange}
+                onChange={handleImageSelect}
               />
             </div>
             <div className="order-3 xl:order-2">
