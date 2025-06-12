@@ -93,15 +93,11 @@ export function useDivisionTable() {
       clearTimeout(searchTimeoutRef.current);
     }
     
-    // If search is cleared, search immediately
+    // Only search immediately when input is cleared (empty)
     if (term === '') {
       performSearch('');
-    } else {
-      // Otherwise, debounce the search by 300ms
-      searchTimeoutRef.current = setTimeout(() => {
-        performSearch(term);
-      }, 300);
     }
+    // Remove the automatic debounced search - user must click search icon or press Enter
   };
 
   // Cleanup timeout on unmount
