@@ -43,7 +43,7 @@ interface LeafletMapProps {
   showCoordinates?: boolean;
 }
 
-export function LeafletMap({
+export default function LeafletMap({
   coordinates,
   zoom = 13,
   popupContent,
@@ -83,4 +83,7 @@ export function LeafletMap({
       )}
     </div>
   );
-} 
+}
+
+// Keep the named export for backward compatibility
+export { LeafletMap }; 

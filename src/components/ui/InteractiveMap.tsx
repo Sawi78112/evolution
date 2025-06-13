@@ -6,7 +6,7 @@ import { GPSCoordinate, formatGPSCoordinates } from '@/lib/gpsUtils';
 
 // Dynamically import the LeafletMap component to avoid SSR issues
 const DynamicLeafletMap = dynamic(
-  () => import('./LeafletMap').then((mod) => ({ default: mod.LeafletMap })),
+  () => import('./LeafletMap'),
   { 
     ssr: false,
     loading: () => (

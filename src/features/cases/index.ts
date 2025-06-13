@@ -3,6 +3,7 @@ export { CasesManagement } from './components/CasesManagement';
 export { CasesTable } from './components/CasesTable';
 export { CasesSearchAndFilters } from './components/CasesSearchAndFilters';
 export { CaseActionButtons } from './components/CaseActionButtons';
+export { DeleteCaseModal } from './components/DeleteCaseModal';
 
 // Hooks
 export { useCases } from './hooks/useCases';

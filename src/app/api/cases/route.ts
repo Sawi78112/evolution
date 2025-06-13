@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
-    // Parse query parameters
     const { searchParams } = new URL(request.url);
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'));
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '10')));
@@ -11,20 +10,16 @@ export async function GET(request: NextRequest) {
     const sortField = searchParams.get('sortField') || 'case_added_date';
     const sortDirection = searchParams.get('sortDirection') || 'desc';
 
-    // Check if environment variables are set
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !serviceRoleKey) {
       return NextResponse.json(
-        { 
-          error: 'Server configuration error: Missing Supabase environment variables'
-        },
+        { error: 'Server configuration error: Missing Supabase environment variables' },
         { status: 500 }
       );
     }
 
-    // Initialize Supabase client with service role key (bypasses RLS)
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: {
         autoRefreshToken: false,
@@ -32,7 +27,6 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // Get all cases first, then do post-processing search for comprehensive functionality
     let query = supabase
       .from('cases')
       .select(`
@@ -48,22 +42,14 @@ export async function GET(request: NextRequest) {
         incident_date,
         case_added_date,
         last_updated_date,
-        incident_address
+        incident_address,
+        incident_country,
+        incident_state,
+        incident_city,
+        case_description,
+        gps_coordinates
       `, { count: 'exact' });
 
-    // Apply basic search filter on main table fields
-    if (search) {
-      query = query.or(`
-        case_name.ilike.%${search}%,
-        client_case_id.ilike.%${search}%,
-        case_type.ilike.%${search}%,
-        case_status.ilike.%${search}%,
-        case_priority.ilike.%${search}%,
-        incident_address.ilike.%${search}%
-      `);
-    }
-
-    // Apply sorting
     const ascending = sortDirection === 'asc';
     switch (sortField) {
       case 'case_name':
@@ -93,38 +79,29 @@ export async function GET(request: NextRequest) {
         break;
     }
 
-    // Apply pagination
     const offset = (page - 1) * limit;
     query = query.range(offset, offset + limit - 1);
 
-    // Execute query
     const { data: cases, count, error } = await query;
 
     if (error) {
       return NextResponse.json(
-        { 
-          error: 'Failed to fetch cases',
-          details: error.message
-        },
+        { error: 'Failed to fetch cases', details: error.message },
         { status: 500 }
       );
     }
 
     if (!cases) {
       return NextResponse.json(
-        { 
-          error: 'No cases data returned'
-        },
+        { error: 'No cases data returned' },
         { status: 500 }
       );
     }
 
-    // Fetch related data separately for lookup
     const userIds = [...new Set(cases.map(c => c.case_owner_user_id).filter(Boolean))];
     const divisionIds = [...new Set(cases.map(c => c.division_id).filter(Boolean))];
     const subTypeIds = [...new Set(cases.map(c => c.case_sub_type_id).filter(Boolean))];
 
-    // Fetch users
     let usersMap = new Map();
     if (userIds.length > 0) {
       const { data: users } = await supabase
@@ -139,7 +116,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch divisions
     let divisionsMap = new Map();
     if (divisionIds.length > 0) {
       const { data: divisions } = await supabase
@@ -154,7 +130,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Fetch case sub types
     let subTypesMap = new Map();
     if (subTypeIds.length > 0) {
       const { data: subTypes } = await supabase
@@ -169,7 +144,6 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Transform the data for frontend consumption
     let transformedCases = cases.map((caseItem, index) => {
       const user = usersMap.get(caseItem.case_owner_user_id);
       const division = divisionsMap.get(caseItem.division_id);
@@ -177,7 +151,7 @@ export async function GET(request: NextRequest) {
 
       return {
         id: caseItem.case_id,
-        no: offset + index + 1, // Row number
+        no: offset + index + 1,
         name: caseItem.case_name,
         clientId: caseItem.client_case_id || 'None',
         type: caseItem.case_type,
@@ -189,44 +163,90 @@ export async function GET(request: NextRequest) {
         initOccur: caseItem.incident_date,
         addedDate: caseItem.case_added_date,
         lastUpdated: caseItem.last_updated_date,
-        location: caseItem.incident_address || 'None'
+        location: caseItem.incident_address || 'None',
+        incident_country: caseItem.incident_country,
+        incident_state: caseItem.incident_state,
+        incident_city: caseItem.incident_city,
+        case_description: caseItem.case_description,
+        gps_coordinates: caseItem.gps_coordinates
       };
     });
 
-    // If search was provided, also search in the transformed data for joined fields
     if (search) {
       const searchLower = search.toLowerCase();
-      transformedCases = transformedCases.filter(caseItem => 
-        caseItem.name.toLowerCase().includes(searchLower) ||
-        caseItem.clientId.toLowerCase().includes(searchLower) ||
-        caseItem.type.toLowerCase().includes(searchLower) ||
-        caseItem.subType.toLowerCase().includes(searchLower) ||
-        caseItem.caseStatus.toLowerCase().includes(searchLower) ||
-        caseItem.priority.toLowerCase().includes(searchLower) ||
-        caseItem.division.toLowerCase().includes(searchLower) ||
-        caseItem.owner.toLowerCase().includes(searchLower) ||
-        caseItem.location.toLowerCase().includes(searchLower)
-      );
+      
+      transformedCases = transformedCases.filter(caseItem => {
+        const toSearchableString = (value: any): string => {
+          if (value === null || value === undefined) return '';
+          if (typeof value === 'string') return value.toLowerCase();
+          if (typeof value === 'number') return value.toString();
+          if (value instanceof Date) return value.toISOString().toLowerCase();
+          return String(value).toLowerCase();
+        };
 
-      // Recalculate pagination for search results
+        const formatDateForSearch = (dateString: string | null): string[] => {
+          if (!dateString) return [''];
+          try {
+            const date = new Date(dateString);
+            const formats = [
+              date.toLocaleDateString('en-US'),
+              date.toLocaleDateString('en-US', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+              date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+              date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }),
+              date.toISOString().split('T')[0],
+              date.getFullYear().toString(),
+              date.getMonth() + 1 + '/' + date.getDate() + '/' + date.getFullYear(),
+              (date.getMonth() + 1).toString().padStart(2, '0') + '/' + date.getDate().toString().padStart(2, '0') + '/' + date.getFullYear(),
+              dateString.toLowerCase(),
+              date.toLocaleDateString('en-US', { month: 'short' }).toLowerCase(),
+              date.toLocaleDateString('en-US', { month: 'long' }).toLowerCase(),
+              date.getDate().toString(),
+              (date.getMonth() + 1).toString()
+            ];
+            return formats;
+          } catch {
+            return [dateString.toLowerCase()];
+          }
+        };
+
+        const textFieldMatches = 
+          toSearchableString(caseItem.name).includes(searchLower) ||
+          toSearchableString(caseItem.clientId).includes(searchLower) ||
+          toSearchableString(caseItem.type).includes(searchLower) ||
+          toSearchableString(caseItem.subType).includes(searchLower) ||
+          toSearchableString(caseItem.caseStatus).includes(searchLower) ||
+          toSearchableString(caseItem.priority).includes(searchLower) ||
+          toSearchableString(caseItem.division).includes(searchLower) ||
+          toSearchableString(caseItem.owner).includes(searchLower) ||
+          toSearchableString(caseItem.location).includes(searchLower) ||
+          toSearchableString(caseItem.case_description).includes(searchLower) ||
+          toSearchableString(caseItem.incident_country).includes(searchLower) ||
+          toSearchableString(caseItem.incident_state).includes(searchLower) ||
+          toSearchableString(caseItem.incident_city).includes(searchLower);
+
+        const dateFieldMatches = 
+          formatDateForSearch(caseItem.initOccur).some(dateStr => dateStr.includes(searchLower)) ||
+          formatDateForSearch(caseItem.addedDate).some(dateStr => dateStr.includes(searchLower)) ||
+          formatDateForSearch(caseItem.lastUpdated).some(dateStr => dateStr.includes(searchLower));
+
+        return textFieldMatches || dateFieldMatches;
+      });
+
       const totalCount = transformedCases.length;
       const totalPages = Math.ceil(totalCount / limit);
       const hasNext = page < totalPages;
       const hasPrev = page > 1;
 
-      // Apply pagination to search results
       const startIndex = (page - 1) * limit;
       const endIndex = startIndex + limit;
       transformedCases = transformedCases.slice(startIndex, endIndex);
 
-      // Update row numbers for paginated search results
       transformedCases = transformedCases.map((caseItem, index) => ({
         ...caseItem,
         no: startIndex + index + 1
       }));
 
-      // Return search results with corrected pagination
-      const response = {
+      return NextResponse.json({
         success: true,
         data: transformedCases,
         pagination: {
@@ -244,19 +264,15 @@ export async function GET(request: NextRequest) {
           field: sortField,
           direction: sortDirection
         }
-      };
-
-      return NextResponse.json(response);
+      });
     }
 
-    // Calculate pagination metadata
     const totalCount = count || 0;
     const totalPages = Math.ceil(totalCount / limit);
     const hasNext = page < totalPages;
     const hasPrev = page > 1;
 
-    // Prepare response
-    const response = {
+    return NextResponse.json({
       success: true,
       data: transformedCases,
       pagination: {
@@ -274,9 +290,153 @@ export async function GET(request: NextRequest) {
         field: sortField,
         direction: sortDirection
       }
+    });
+
+  } catch (error) {
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    const {
+      name,
+      type,
+      subType,
+      division,
+      description,
+      incidentDate,
+      country,
+      state,
+      city,
+      address,
+      gpsLatitude,
+      gpsLongitude,
+      caseStatus,
+      priority,
+      clientId
+    } = body;
+
+    if (!name || !type) {
+      return NextResponse.json(
+        { error: 'Missing required fields: name and type are required' },
+        { status: 400 }
+      );
+    }
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !serviceRoleKey) {
+      return NextResponse.json(
+        { error: 'Server configuration error: Missing Supabase environment variables' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, serviceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    let divisionId = null;
+    if (division && division.trim() !== '') {
+      const { data: divisionData } = await supabase
+        .from('divisions')
+        .select('division_id')
+        .eq('name', division)
+        .single();
+      
+      divisionId = divisionData?.division_id;
+    }
+
+    let caseSubTypeId = null;
+    if (subType && subType !== 'None' && subType.trim() !== '') {
+      const { data: subTypeData } = await supabase
+        .from('case_sub_types')
+        .select('id')
+        .eq('sub_type', subType)
+        .eq('case_type', type)
+        .single();
+      
+      caseSubTypeId = subTypeData?.id;
+    }
+
+    let gpsCoordinates = null;
+    if (gpsLatitude && gpsLongitude) {
+      gpsCoordinates = {
+        type: 'Point',
+        coordinates: [parseFloat(gpsLongitude), parseFloat(gpsLatitude)]
+      };
+    }
+
+    let defaultUserId = null;
+    try {
+      const { data: firstUser } = await supabase
+        .from('users')
+        .select('user_id')
+        .limit(1)
+        .single();
+      defaultUserId = firstUser?.user_id || null;
+    } catch (userError) {
+      // Handle case where no users exist
+    }
+
+    const caseData = {
+      case_name: name,
+      client_case_id: clientId || null,
+      case_type: type,
+      case_sub_type_id: caseSubTypeId,
+      case_status: caseStatus || 'Open',
+      case_priority: priority || 'Low',
+      case_owner_user_id: defaultUserId,
+      division_id: divisionId,
+      case_description: description || null,
+      incident_date: incidentDate || null,
+      incident_country: country || null,
+      incident_state: state || null,
+      incident_city: city || null,
+      incident_address: address || null,
+      gps_coordinates: gpsCoordinates,
+      case_added_date: new Date().toISOString(),
+      last_updated_date: new Date().toISOString()
     };
 
-    return NextResponse.json(response);
+    const { data: newCase, error: insertError } = await supabase
+      .from('cases')
+      .insert(caseData)
+      .select()
+      .single();
+
+    if (insertError) {
+      return NextResponse.json(
+        { 
+          error: 'Failed to create case',
+          details: insertError.message,
+          code: insertError.code
+        },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Case created successfully',
+      data: {
+        id: newCase.case_id,
+        name: newCase.case_name
+      }
+    });
 
   } catch (error) {
     return NextResponse.json(

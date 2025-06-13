@@ -4,8 +4,12 @@ import React, { useState } from 'react';
 import { CasesSearchAndFilters } from './CasesSearchAndFilters';
 import { CasesTable } from './CasesTable';
 import { CaseDetailsModal } from './CaseDetailsModal';
+import { AddCaseModal } from './add-case';
+import { EditCaseModal } from './edit-case';
+import { DeleteCaseModal } from './DeleteCaseModal';
 import Pagination from '@/components/tables/Pagination';
 import { useCasesTable } from '../hooks/useCasesTable';
+import { useNotification } from '@/components/ui/notification';
 
 export function CasesManagement() {
   const {
@@ -26,15 +30,23 @@ export function CasesManagement() {
     handleSearchChange,
     handlePageChange,
     handleItemsPerPageChange,
+    refetch,
     
     // Utilities
     formatDate,
     formatDateTime
   } = useCasesTable();
 
+  const notification = useNotification();
+
   // Modal state
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
+  const [selectedCaseData, setSelectedCaseData] = useState<any>(null);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Action handlers
   const handleDetailCase = (caseId: string) => {
@@ -48,18 +60,103 @@ export function CasesManagement() {
   };
 
   const handleEditCase = (caseId: string) => {
-    console.log('Edit case:', caseId);
-    // TODO: Implement case edit modal
+    // Find the case data
+    const caseData = cases.find(c => c.id === caseId);
+    if (caseData) {
+      setSelectedCaseId(caseId);
+      setSelectedCaseData(caseData);
+      setIsEditModalOpen(true);
+    }
+  };
+
+  const handleCloseEditModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedCaseId(null);
+    setSelectedCaseData(null);
+  };
+
+  const handleSaveCase = (updatedCaseData: any) => {
+    console.log('Saving updated case:', updatedCaseData);
+    setIsEditModalOpen(false);
+    setSelectedCaseId(null);
+    setSelectedCaseData(null);
+    // Refresh the cases list to show the updated case
+    refetch();
   };
 
   const handleRemoveCase = (caseId: string) => {
-    console.log('Remove case:', caseId);
-    // TODO: Implement case removal confirmation modal
+    // Find the case data
+    const caseData = cases.find(c => c.id === caseId);
+    if (caseData) {
+      setSelectedCaseId(caseId);
+      setSelectedCaseData(caseData);
+      setIsDeleteModalOpen(true);
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setSelectedCaseId(null);
+    setSelectedCaseData(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!selectedCaseId) return;
+    
+    setIsDeleting(true);
+    try {
+      const response = await fetch(`/api/cases/${selectedCaseId}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to delete case');
+      }
+      
+      const result = await response.json();
+      console.log('Case deleted successfully:', result);
+      
+      // Show success notification
+      notification.success(
+        'Case Deleted Successfully',
+        `"${selectedCaseData?.name}" has been permanently removed from the system.`
+      );
+      
+      // Close modal and reset state
+      setIsDeleteModalOpen(false);
+      setSelectedCaseId(null);
+      setSelectedCaseData(null);
+      
+      // Refresh the cases list
+      refetch();
+      
+    } catch (error) {
+      console.error('Failed to delete case:', error);
+      
+      // Show error notification
+      notification.error(
+        'Failed to Delete Case',
+        error instanceof Error ? error.message : 'An unexpected error occurred while deleting the case.'
+      );
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const handleAddCase = () => {
-    console.log('Add new case');
-    // TODO: Implement add case modal or navigation
+    setIsAddModalOpen(true);
+  };
+
+  const handleCloseAddModal = () => {
+    setIsAddModalOpen(false);
+  };
+
+  const handleAddCaseSuccess = () => {
+    setIsAddModalOpen(false);
+    console.log('Case added successfully');
+    // Refresh the cases list to show the new case
+    refetch();
   };
 
   return (
@@ -109,12 +206,41 @@ export function CasesManagement() {
         </div>
       )}
 
+      {/* Add Case Modal */}
+      <AddCaseModal
+        isOpen={isAddModalOpen}
+        onClose={handleCloseAddModal}
+        onSuccess={handleAddCaseSuccess}
+      />
+
+      {/* Edit Case Modal */}
+      {selectedCaseData && (
+        <EditCaseModal
+          isOpen={isEditModalOpen}
+          onClose={handleCloseEditModal}
+          caseData={selectedCaseData}
+          onSave={handleSaveCase}
+        />
+      )}
+
       {/* Case Details Modal */}
       {selectedCaseId && (
         <CaseDetailsModal
           isOpen={isDetailsModalOpen}
           onClose={handleCloseDetailsModal}
           caseId={selectedCaseId}
+        />
+      )}
+
+      {/* Delete Case Modal */}
+      {selectedCaseData && (
+        <DeleteCaseModal
+          isOpen={isDeleteModalOpen}
+          onClose={handleCloseDeleteModal}
+          onConfirm={handleConfirmDelete}
+          caseId={selectedCaseData.id}
+          caseName={selectedCaseData.name}
+          loading={isDeleting}
         />
       )}
     </div>

@@ -50,8 +50,11 @@ export const PRIORITY_COLORS = {
 
 // Status color mapping for Badge component - More meaningful colors
 export const STATUS_COLORS = {
-  Open: 'success',    // Green - active/open cases
-  Closed: 'light'     // Gray - completed/closed cases
+  Open: 'success',        // Green - active/open cases
+  'In Progress': 'info',  // Blue - cases being worked on
+  'Under Review': 'warning', // Orange - cases under review
+  Closed: 'light',        // Gray - completed/closed cases
+  Archived: 'dark'        // Dark - archived cases
 } as const;
 
 // Priority background colors for visual appeal in details
@@ -65,5 +68,8 @@ export const PRIORITY_BG_COLORS = {
 // Status background colors for visual appeal in details
 export const STATUS_BG_COLORS = {
   Open: 'bg-green-50 border-green-200 dark:bg-green-500/10 dark:border-green-500/20',
-  Closed: 'bg-gray-50 border-gray-200 dark:bg-gray-500/10 dark:border-gray-500/20'
+  'In Progress': 'bg-blue-50 border-blue-200 dark:bg-blue-500/10 dark:border-blue-500/20',
+  'Under Review': 'bg-orange-50 border-orange-200 dark:bg-orange-500/10 dark:border-orange-500/20',
+  Closed: 'bg-gray-50 border-gray-200 dark:bg-gray-500/10 dark:border-gray-500/20',
+  Archived: 'bg-purple-50 border-purple-200 dark:bg-purple-500/10 dark:border-purple-500/20'
 } as const; 
